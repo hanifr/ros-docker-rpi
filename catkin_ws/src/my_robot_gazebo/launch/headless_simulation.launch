@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- Headless Gazebo World for Raspberry Pi -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <!-- World file -->
+    <arg name="world_name" value="$(find my_robot_gazebo)/worlds/simple_world.world"/>
+    
+    <!-- Gazebo settings optimized for Pi -->
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="false"/>          <!-- No GUI for headless -->
+    <arg name="headless" value="true"/>      <!-- Headless mode -->
+    <arg name="debug" value="false"/>
+    <arg name="verbose" value="false"/>
+    
+    <!-- Physics engine settings -->
+    <arg name="physics" value="ode"/>        <!-- Use ODE (lighter than others) -->
+    <arg name="extra_gazebo_args" value="--verbose"/>
+  </include>
+
+  <!-- Load robot description -->
+  <param name="robot_description" 
+         command="$(find xacro)/xacro $(find my_robot_description)/urdf/robot.urdf.xacro"/>
+
+  <!-- Spawn robot model -->
+  <node name="spawn_robot" pkg="gazebo_ros" type="spawn_model"
+        args="-urdf -model mobile_robot -param robot_description -x 0 -y 0 -z 0.1"
+        respawn="false" output="screen"/>
+
+  <!-- Robot state publisher -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="30.0"/>
+  </node>
+
+  <!-- ROS Bridge for web interface -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+    <arg name="port" value="9090"/>
+  </include>
+
+  <!-- Web video server (optional) -->
+  <node name="web_video_server" pkg="web_video_server" type="web_video_server">
+    <param name="port" value="8080"/>
+  </node>
+
+  <!-- Robot control nodes -->
+  <node name="robot_controller" pkg="my_robot_gazebo" type="robot_controller.py" output="screen"/>
+  
+</launch>

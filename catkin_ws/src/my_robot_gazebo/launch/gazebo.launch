@@ -1,0 +1,19 @@
+<launch>
+  <!-- Load robot description -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find my_robot_description)/urdf/robot.urdf.xacro'" />
+  
+  <!-- Configure Gazebo remote connection -->
+  <arg name="gazebo_ip" default="gazebo"/>
+  <arg name="gazebo_port" default="11345"/>
+  <env name="GAZEBO_MASTER_URI" value="http://$(arg gazebo_ip):$(arg gazebo_port)"/>
+  
+  <!-- Spawn the robot in Gazebo -->
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" 
+        args="-param robot_description -urdf -model my_robot" />
+        
+  <!-- Start robot state publisher -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  
+  <!-- Start joint state publisher -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+</launch>

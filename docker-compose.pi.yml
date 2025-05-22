@@ -1,0 +1,45 @@
+# docker-compose.pi.yml
+version: '3.8'
+services:
+  gazebo-sim:
+    build:
+      context: .
+      dockerfile: Dockerfile.arm64
+    container_name: gazebo-pi
+    restart: unless-stopped
+    environment:
+      - ROS_MASTER_URI=http://localhost:11311
+      - GAZEBO_MASTER_URI=http://localhost:11345
+    volumes:
+      - ./catkin_ws:/catkin_ws
+      - ./models:/root/.gazebo/models  
+      - ./worlds:/worlds
+    ports:
+      - "11311:11311"  # ROS Master
+      - "11345:11345"  # Gazebo Master
+      - "9090:9090"    # ROSBridge WebSocket
+      - "8080:8080"    # Web Interface
+    deploy:
+      resources:
+        limits:
+          memory: 3G     # Limit for Pi
+        reservations:
+          memory: 1G
+    command: >
+      bash -c "source /opt/ros/noetic/setup.bash &&
+               cd /catkin_ws &&
+               catkin_make &&
+               source devel/setup.bash &&
+               roslaunch robot_gazebo headless_simulation.launch"
+
+  web-interface:
+    build:
+      context: ./web_interface
+      dockerfile: Dockerfile.web
+    container_name: web-ui
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gazebo-sim
+    environment:
+      - ROS_BRIDGE_URL=ws://gazebo-sim:9090

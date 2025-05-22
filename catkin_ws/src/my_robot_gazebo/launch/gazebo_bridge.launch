@@ -1,0 +1,10 @@
+<launch>
+  <!-- Configure connection to Gazebo -->
+  <env name="GAZEBO_MASTER_URI" value="http://gazebo:11345"/>
+  
+  <!-- Start the Gazebo ROS node (provides ROS interface to Gazebo) -->
+  <node name="gazebo_ros_node" pkg="gazebo_ros" type="gazebo" 
+        args="-e ode --verbose" respawn="false" output="screen">
+    <remap from="/gazebo/set_model_state" to="/gazebo/set_model_state" />
+  </node>
+</launch>
