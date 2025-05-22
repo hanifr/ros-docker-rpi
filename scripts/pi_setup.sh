@@ -1,9 +1,9 @@
 #!/bin/bash
-# pi_setup.sh - Pi environment setup
+# pi_setup.sh - Pi environment setup (Docker ROS Only)
 
 set -e  # Exit on any error
 
-echo "🚀 Setting up Raspberry Pi 4B for Gazebo ROS Simulation..."
+echo "🚀 Setting up Raspberry Pi 4B for Gazebo ROS Simulation (Docker Mode)..."
 echo "=================================================="
 
 # Colors for output
@@ -88,41 +88,6 @@ else
     print_status "Docker Compose already installed."
 fi
 
-# Install ROS 2 Humble (optional - can run in Docker instead)
-print_status "Installing ROS 2 Humble..."
-if ! command -v ros2 &> /dev/null; then
-    # Add ROS 2 GPG key
-    sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-    
-    # Add ROS 2 repository
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(source /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
-    
-    sudo apt update
-    sudo apt install -y ros-humble-desktop-full
-    
-    # Install additional ROS packages
-    sudo apt install -y \
-        ros-humble-gazebo-ros-pkgs \
-        ros-humble-gazebo-ros-control \
-        ros-humble-rosbridge-server \
-        ros-humble-web-video-server \
-        python3-rosdep \
-        python3-colcon-common-extensions
-    
-    # Initialize rosdep
-    if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
-        sudo rosdep init
-    fi
-    rosdep update
-    
-    # Add ROS setup to bashrc
-    if ! grep -q "source /opt/ros/humble/setup.bash" ~/.bashrc; then
-        echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
-    fi
-else
-    print_status "ROS 2 already installed."
-fi
-
 # Install Python packages for web interface
 print_status "Installing Python packages..."
 sudo apt install -y python3-pip python3-venv
@@ -132,15 +97,17 @@ pip3 install --user flask flask-socketio eventlet
 print_status "Configuring system performance..."
 
 # GPU memory split
-if ! grep -q "gpu_mem=128" /boot/firmware/config.txt; then
+if ! grep -q "gpu_mem=128" /boot/firmware/config.txt 2>/dev/null; then
     echo "gpu_mem=128" | sudo tee -a /boot/firmware/config.txt
+    print_status "GPU memory split configured"
 fi
 
 # CPU frequency (optional - may require more cooling)
-if ! grep -q "arm_freq=2000" /boot/firmware/config.txt; then
+if ! grep -q "arm_freq=2000" /boot/firmware/config.txt 2>/dev/null; then
     echo "# Overclocking (ensure adequate cooling)" | sudo tee -a /boot/firmware/config.txt
     echo "arm_freq=2000" | sudo tee -a /boot/firmware/config.txt
     echo "over_voltage=6" | sudo tee -a /boot/firmware/config.txt
+    print_warning "CPU overclocking enabled - ensure adequate cooling!"
 fi
 
 # Configure swap
@@ -148,14 +115,21 @@ print_status "Configuring swap..."
 if [ -f /etc/dphys-swapfile ]; then
     sudo sed -i 's/CONF_SWAPSIZE=100/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
     sudo systemctl restart dphys-swapfile
+    print_status "Swap configured to 2GB"
+elif [ -f /swapfile ]; then
+    # Ubuntu might use different swap setup
+    print_status "Swap file detected, keeping existing configuration"
+else
+    print_warning "No swap configuration found"
 fi
 
 # Enable SSH (if not already enabled)
 print_status "Ensuring SSH is enabled..."
+sudo apt install openssh-server -y
 sudo systemctl enable ssh
 sudo systemctl start ssh
 
-# Configure Docker daemon
+# Configure Docker daemon for Pi optimization
 print_status "Configuring Docker daemon..."
 if [ ! -f /etc/docker/daemon.json ]; then
     sudo tee /etc/docker/daemon.json > /dev/null <<EOF
@@ -169,9 +143,16 @@ if [ ! -f /etc/docker/daemon.json ]; then
   "experimental": true,
   "features": {
     "buildkit": true
+  },
+  "default-runtime": "runc",
+  "runtimes": {
+    "runc": {
+      "path": "runc"
+    }
   }
 }
 EOF
+    print_status "Docker daemon configured for Pi optimization"
     sudo systemctl restart docker
 fi
 
@@ -180,15 +161,7 @@ print_status "Setting up simulation workspace..."
 WORKSPACE_DIR="$HOME/gazebo-ros-pi"
 if [ ! -d "$WORKSPACE_DIR" ]; then
     mkdir -p "$WORKSPACE_DIR"/{scripts,catkin_ws/src,models,worlds,web_interface}
-fi
-
-# Set up catkin workspace
-if [ ! -f "$WORKSPACE_DIR/catkin_ws/src/CMakeLists.txt" ]; then
-    cd "$WORKSPACE_DIR/catkin_ws"
-    if command -v ros2 &> /dev/null; then
-        # ROS 2 workspace
-        colcon build
-    fi
+    print_status "Workspace directory created: $WORKSPACE_DIR"
 fi
 
 # Create system monitoring script
@@ -225,6 +198,38 @@ done
 EOF
 chmod +x "$WORKSPACE_DIR/scripts/monitor_pi_resources.sh"
 
+# Create Docker test script
+print_status "Creating Docker test script..."
+cat > "$WORKSPACE_DIR/scripts/test_docker_setup.sh" << 'EOF'
+#!/bin/bash
+# test_docker_setup.sh - Test Docker installation
+
+echo "🔧 Testing Docker Setup..."
+
+# Test basic Docker
+echo "1. Testing Docker installation..."
+docker --version
+
+echo "2. Testing Docker daemon..."
+docker info > /dev/null && echo "✅ Docker daemon running" || echo "❌ Docker daemon not running"
+
+echo "3. Testing Docker permissions..."
+docker run --rm hello-world > /dev/null 2>&1 && echo "✅ Docker permissions OK" || echo "❌ Docker permissions issue - try: sudo usermod -aG docker $USER && logout"
+
+echo "4. Testing Docker Compose..."
+docker-compose --version
+
+echo "5. Testing ARM64 ROS image pull..."
+docker pull arm64v8/ros:humble-ros-base-jammy && echo "✅ ARM64 ROS image available" || echo "❌ Cannot pull ARM64 ROS image"
+
+echo "6. System resources:"
+echo "   Memory: $(free -h | awk 'NR==2{print $2}')"
+echo "   Temperature: $(vcgencmd measure_temp 2>/dev/null || echo 'N/A')"
+echo ""
+echo "🎉 Docker setup test completed!"
+EOF
+chmod +x "$WORKSPACE_DIR/scripts/test_docker_setup.sh"
+
 # Final system check
 print_status "Running system check..."
 echo "======================================"
@@ -236,7 +241,6 @@ echo "Memory: $(free -h | awk 'NR==2{print $2}')"
 echo "Disk Space: $(df -h / | awk 'NR==2{print $4 " available"}')"
 echo "Docker: $(docker --version 2>/dev/null || echo 'Not installed')"
 echo "Docker Compose: $(docker-compose --version 2>/dev/null || echo 'Not installed')"
-echo "ROS 2: $(ros2 --version 2>/dev/null || echo 'Not installed')"
 echo "Temperature: $(vcgencmd measure_temp 2>/dev/null || echo 'N/A')"
 echo "======================================"
 
@@ -245,9 +249,16 @@ print_warning "Please reboot your Pi to ensure all changes take effect:"
 echo "sudo reboot"
 
 print_status "After reboot, you can:"
-echo "1. Start monitoring: ./scripts/monitor_pi_resources.sh"
-echo "2. Set up your Gazebo simulation environment"
-echo "3. Test Docker: docker run hello-world"
+echo "1. Test Docker setup: ./scripts/test_docker_setup.sh"
+echo "2. Start monitoring: ./scripts/monitor_pi_resources.sh"
+echo "3. Create your Docker Compose configuration"
+echo "4. Start headless Gazebo simulation"
+
+echo ""
+print_status "Next steps:"
+print_status "1. Create docker-compose.pi.yml with ROS Humble container"
+print_status "2. Create Dockerfile.arm64 for custom image"
+print_status "3. Test with simple_robot.urdf in headless mode"
 
 echo ""
 print_status "Setup log saved to: /tmp/pi_setup.log"

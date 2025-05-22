@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot name="differential_drive_robot">
-  <!-- Base Link -->
+  <!-- Base Link - PERFECT AS IS -->
   <link name="base_link">
     <visual>
       <geometry>
@@ -22,7 +22,7 @@
     </inertial>
   </link>
   
-  <!-- Left Wheel -->
+  <!-- Left Wheel - PERFECT AS IS -->
   <link name="left_wheel">
     <visual>
       <geometry>
@@ -52,13 +52,15 @@
     <dynamics damping="0.1" friction="0.1"/>
   </joint>
   
-  <!-- Right Wheel -->
+  <!-- Right Wheel - PERFECT AS IS -->
   <link name="right_wheel">
     <visual>
       <geometry>
         <cylinder radius="0.1" length="0.05"/>
       </geometry>
-      <material name="black"/>
+      <material name="black">
+        <color rgba="0.1 0.1 0.1 1"/>
+      </material>
     </visual>
     <collision>
       <geometry>
@@ -80,7 +82,7 @@
     <dynamics damping="0.1" friction="0.1"/>
   </joint>
   
-  <!-- Caster Wheel (for stability) -->
+  <!-- Caster Wheel (Great for stability!) -->
   <link name="caster_wheel">
     <visual>
       <geometry>
@@ -108,15 +110,19 @@
     <origin xyz="0.2 0 -0.05" rpy="0 0 0"/>
   </joint>
   
-  <!-- Gazebo Colors -->
+  <!-- Gazebo Colors - PERFECT AS IS -->
   <gazebo reference="base_link">
     <material>Gazebo/Blue</material>
   </gazebo>
   <gazebo reference="left_wheel">
     <material>Gazebo/Black</material>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
   </gazebo>
   <gazebo reference="right_wheel">
     <material>Gazebo/Black</material>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
   </gazebo>
   <gazebo reference="caster_wheel">
     <material>Gazebo/Grey</material>
@@ -124,21 +130,54 @@
     <mu2>0.0</mu2>
   </gazebo>
   
-  <!-- Gazebo Differential Drive Plugin -->
+  <!-- UPDATED: ROS 2 Gazebo Differential Drive Plugin -->
   <gazebo>
-    <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
-      <leftJoint>left_wheel_joint</leftJoint>
-      <rightJoint>right_wheel_joint</rightJoint>
-      <wheelSeparation>0.35</wheelSeparation>
-      <wheelDiameter>0.2</wheelDiameter>
-      <robotBaseFrame>base_link</robotBaseFrame>
-      <publishWheelTF>true</publishWheelTF>
-      <publishOdomTF>true</publishOdomTF>
-      <publishWheelJointState>true</publishWheelJointState>
-      <commandTopic>cmd_vel</commandTopic>
-      <odometryTopic>odom</odometryTopic>
-      <odometryFrame>odom</odometryFrame>
-      <updateRate>20</updateRate>
+    <plugin name="gazebo_ros_diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <!-- ROS 2 namespace and topic remapping -->
+      <ros>
+        <namespace></namespace>
+        <remapping>cmd_vel:=cmd_vel</remapping>
+        <remapping>odom:=odom</remapping>
+      </ros>
+      
+      <!-- Wheel joints -->
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      
+      <!-- Wheel properties -->
+      <wheel_separation>0.35</wheel_separation>
+      <wheel_diameter>0.2</wheel_diameter>
+      
+      <!-- Robot base frame -->
+      <robot_base_frame>base_link</robot_base_frame>
+      
+      <!-- Publishing settings -->
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <publish_wheel_tf>true</publish_wheel_tf>
+      
+      <!-- Frame names -->
+      <odometry_frame>odom</odometry_frame>
+      
+      <!-- Pi-optimized update rate -->
+      <update_rate>20.0</update_rate>
+      
+      <!-- Limits (optional) -->
+      <max_wheel_torque>20</max_wheel_torque>
+      <max_wheel_acceleration>1.0</max_wheel_acceleration>
     </plugin>
   </gazebo>
+
+  <!-- Joint State Publisher for ROS 2 -->
+  <gazebo>
+    <plugin name="gazebo_ros_joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+      <ros>
+        <remapping>~/out:=joint_states</remapping>
+      </ros>
+      <update_rate>20</update_rate>
+      <joint_name>left_wheel_joint</joint_name>
+      <joint_name>right_wheel_joint</joint_name>
+    </plugin>
+  </gazebo>
+
 </robot>
