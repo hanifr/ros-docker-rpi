@@ -19,15 +19,18 @@ sudo chmod 666 /var/run/docker.sock
 ### Directory Structure
 ```
 gazebo-ros-pi/
-├── docker-compose.pi.yml     # ✅ Use corrected version above
-├── Dockerfile.arm64          # ✅ From previous artifacts
-├── Dockerfile.web            # ✅ From previous artifacts  
-├── Dockerfile.monitor        # ✅ From previous artifacts
-├── requirements.txt          # ✅ From previous artifacts
+├── docker-compose.pi.yml     ✅ ROS 2 Humble optimized for Pi 4B
+├── Dockerfile.arm64          ✅ ARM64 ROS 2 base with Gazebo
+├── Dockerfile.web            ✅ Simplified Flask web interface  
+├── Dockerfile.monitor        ✅ Pi resource monitoring
+└── requirements.txt          ✅ Python dependencies
 └── ros2_ws/                  # ✅ After running convert_to_ros2.sh
 ├── models/                   # Custom Gazebo models
 │   ├── my_robot/
 │   └── sensors/
+├── monitor/                   # Monitoring UI
+│   ├── monitor.py
+│   └── requirements.txt
 ├── worlds/                            # Gazebo world files
 │   ├── simple_world.world
 │   └── obstacle_course.world
@@ -49,7 +52,7 @@ gazebo-ros-pi/
 │   ├── pi_setup.sh                    # Pi environment setup
 │   ├── run_headless_sim.sh            # Headless simulation launcher
 │   ├── start_web_interface.sh         # Web UI launcher
-│   ├── teleop.sh                      # Robot control (from Mac)
+│   ├── teleop.sh                      # Robot control
 │   ├── monitor_pi_resources.sh        # Created by pi_setup.sh
 │   └── ...
 └── web_interface/                     # 🔄 Created by start_web_interface.sh
@@ -61,43 +64,126 @@ gazebo-ros-pi/
 
 ### Custom Dockerfile for ARM64
 ```dockerfile
-# Dockerfile.arm64
-FROM arm64v8/ros:noetic-robot-focal
+# Dockerfile.arm64 - ROS 2 Humble for Pi 4B (Improved)
+FROM arm64v8/ros:humble-ros-base-jammy
 
-# Install additional packages for Pi
+# Set environment variables for Pi optimization
+ENV DEBIAN_FRONTEND=noninteractive \
+    ROS_DISTRO=humble \
+    PYTHONUNBUFFERED=1 \
+    TERM=xterm-256color
+
+# Create workspace early
+WORKDIR /workspace
+
+# Install system dependencies in one layer for better caching
 RUN apt-get update && apt-get install -y \
-    gazebo11 \
-    ros-noetic-gazebo-ros-pkgs \
-    ros-noetic-gazebo-ros-control \
-    ros-noetic-rosbridge-server \
-    ros-noetic-web-video-server \
-    python3-pip \
+    # Gazebo packages
+    gazebo \
+    ros-humble-gazebo-ros-pkgs \
+    ros-humble-gazebo-ros2-control \
+    ros-humble-rosbridge-server \
+    ros-humble-web-video-server \
+    # Build tools
+    python3-colcon-common-extensions \
+    python3-colcon-mixin \
+    python3-rosdep \
+    # Development tools
+    git \
+    curl \
+    wget \
+    vim \
     htop \
-    && rm -rf /var/lib/apt/lists/*
+    tree \
+    # Debugging tools
+    gdb \
+    valgrind \
+    # Network tools
+    net-tools \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Install web dependencies
-RUN pip3 install flask socketio
+# Initialize rosdep
+RUN rosdep init && rosdep update
 
-# Copy workspace
-COPY catkin_ws /catkin_ws
-WORKDIR /catkin_ws
+# Setup colcon mixins for faster builds
+RUN colcon mixin add default \
+    https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml && \
+    colcon mixin update default
 
-# Build workspace
-RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+# Create directories
+RUN mkdir -p src build install log
 
-# Setup environment
-RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
-RUN echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc
+# Copy workspace source (if exists)
+COPY ros2_ws/src ./src/
 
-EXPOSE 11311 11345 9090 8080
+# Install dependencies using rosdep (if source packages exist)
+RUN if [ "$(ls -A src/ 2>/dev/null)" ]; then \
+        echo "Installing ROS 2 package dependencies..." && \
+        /bin/bash -c "source /opt/ros/humble/setup.bash && \
+                      rosdep install --from-paths src --ignore-src -r -y || true"; \
+    fi
 
+# Build workspace (conditional - only if src directory has content)
+RUN if [ "$(ls -A src/ 2>/dev/null)" ]; then \
+        echo "Building ROS 2 workspace..." && \
+        /bin/bash -c "source /opt/ros/humble/setup.bash && \
+                      colcon build --symlink-install \
+                                   --cmake-args -DCMAKE_BUILD_TYPE=Release \
+                                   --parallel-workers 2 \
+                                   --event-handlers console_direct+"; \
+    else \
+        echo "No source packages found, skipping build"; \
+    fi
+
+# Setup bash environment
+RUN echo "# ROS 2 Environment Setup" >> ~/.bashrc && \
+    echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
+    echo "if [ -f /workspace/install/setup.bash ]; then" >> ~/.bashrc && \
+    echo "    source /workspace/install/setup.bash" >> ~/.bashrc && \
+    echo "    echo '✓ ROS 2 workspace sourced'" >> ~/.bashrc && \
+    echo "fi" >> ~/.bashrc && \
+    echo "" >> ~/.bashrc && \
+    echo "# Aliases for convenience" >> ~/.bashrc && \
+    echo "alias ll='ls -la'" >> ~/.bashrc && \
+    echo "alias cb='colcon build --symlink-install'" >> ~/.bashrc && \
+    echo "alias ct='colcon test'" >> ~/.bashrc && \
+    echo "alias source_ros='source /opt/ros/humble/setup.bash'" >> ~/.bashrc && \
+    echo "alias source_ws='source install/setup.bash'" >> ~/.bashrc
+
+# Create entrypoint script
+RUN echo '#!/bin/bash' > /entrypoint.sh && \
+    echo 'set -e' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Source ROS 2' >> /entrypoint.sh && \
+    echo 'source /opt/ros/humble/setup.bash' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Source workspace if available' >> /entrypoint.sh && \
+    echo 'if [ -f /workspace/install/setup.bash ]; then' >> /entrypoint.sh && \
+    echo '    source /workspace/install/setup.bash' >> /entrypoint.sh && \
+    echo 'fi' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Execute command' >> /entrypoint.sh && \
+    echo 'exec "$@"' >> /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+# Expose ports
+EXPOSE 11345 9090 8080
+
+# Set entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Default command
 CMD ["bash"]
 ```
 
 ### Pi-Optimized Docker Compose
 ```yaml
 # docker-compose.pi.yml
+# docker-compose.pi.yml - CORRECTED - Optimized ROS 2 Humble for Pi 4B
 version: '3.8'
+
 services:
   gazebo-sim:
     build:
@@ -106,41 +192,177 @@ services:
     container_name: gazebo-pi
     restart: unless-stopped
     environment:
-      - ROS_MASTER_URI=http://localhost:11311
+      # ROS 2 Environment Variables
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - FASTRTPS_DEFAULT_PROFILES_FILE=/workspace/fastrtps_profile.xml
+      # Headless Gazebo
+      - DISPLAY=
       - GAZEBO_MASTER_URI=http://localhost:11345
+      - GAZEBO_MODEL_PATH=/root/.gazebo/models:/workspace/models:/worlds
+      # Pi Optimizations
+      - GAZEBO_RESOURCE_PATH=/usr/share/gazebo:/worlds
+      - PYTHONUNBUFFERED=1
+      # ROS 2 Performance Tuning
+      - RCUTILS_LOGGING_BUFFERED_STREAM=1
+      - RCUTILS_COLORIZED_OUTPUT=0
     volumes:
-      - ./catkin_ws:/catkin_ws
+      # FIXED: Use ros2_ws instead of catkin_ws for ROS 2
+      - ./ros2_ws:/workspace
       - ./models:/root/.gazebo/models  
       - ./worlds:/worlds
+      # Persistent volumes for build artifacts
+      - workspace_build:/workspace/build
+      - workspace_install:/workspace/install
+      - workspace_log:/workspace/log
+      # System mounts
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
-      - "11311:11311"  # ROS Master
       - "11345:11345"  # Gazebo Master
       - "9090:9090"    # ROSBridge WebSocket
-      - "8080:8080"    # Web Interface
+    networks:
+      - gazebo-pi-network
     deploy:
       resources:
         limits:
-          memory: 3G     # Limit for Pi
+          memory: 3G     # Pi 4B memory limit
+          cpus: '3.5'    # Leave some CPU for system
         reservations:
           memory: 1G
+          cpus: '1.0'
+    # Optimized command for ROS 2 Humble + Pi performance
     command: >
-      bash -c "source /opt/ros/noetic/setup.bash &&
-               cd /catkin_ws &&
-               catkin_make &&
-               source devel/setup.bash &&
-               roslaunch robot_gazebo headless_simulation.launch"
+      bash -c "
+        echo '🚀 Starting Gazebo ROS 2 Simulation on Pi 4B...' &&
+        source /opt/ros/humble/setup.bash &&
+        cd /workspace &&
+        
+        # Create FastRTPS profile for Pi optimization
+        cat > fastrtps_profile.xml << 'EOF'
+      <?xml version='1.0' encoding='UTF-8'?>
+      <profiles xmlns='http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles'>
+        <transport_descriptors>
+          <transport_descriptor>
+            <transport_id>udp_transport</transport_id>
+            <type>UDPv4</type>
+            <sendBufferSize>1048576</sendBufferSize>
+            <receiveBufferSize>1048576</receiveBufferSize>
+          </transport_descriptor>
+        </transport_descriptors>
+        <participant profile_name='participant_profile' is_default_profile='true'>
+          <rtps>
+            <userTransports>
+              <transport_id>udp_transport</transport_id>
+            </userTransports>
+            <useBuiltinTransports>false</useBuiltinTransports>
+          </rtps>
+        </participant>
+      </profiles>
+      EOF
+        
+        # Build workspace if needed
+        if [ ! -f install/setup.bash ] && [ -d src ] && [ \"\$(ls -A src/ 2>/dev/null)\" ]; then
+          echo '📦 Building ROS 2 workspace...' &&
+          colcon build --symlink-install \
+                       --cmake-args -DCMAKE_BUILD_TYPE=Release \
+                       --parallel-workers 2 \
+                       --event-handlers console_direct+
+        fi &&
+        
+        # Source workspace if built
+        if [ -f install/setup.bash ]; then
+          source install/setup.bash
+        fi &&
+        
+        # Start ROSBridge in background (FIXED: Correct ROS 2 launch syntax)
+        echo '🔌 Starting ROSBridge WebSocket Server...' &&
+        ros2 launch rosbridge_server rosbridge_websocket_launch.xml port:=9090 &
+        
+        # Wait a moment for ROSBridge to start
+        sleep 5 &&
+        
+        echo '🤖 Launching headless simulation...' &&
+        if [ -f src/my_robot_gazebo/launch/headless_simulation.launch.py ]; then
+          ros2 launch my_robot_gazebo headless_simulation.launch.py
+        else
+          echo '⚠️  Launch file not found, starting basic Gazebo...' &&
+          ros2 launch gazebo_ros gazebo.launch.py world:=/worlds/empty.world gui:=false
+        fi
+      "
+    healthcheck:
+      test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 topic list | grep -q '/clock' || ros2 topic list"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 90s
 
   web-interface:
+    # SIMPLIFIED: Use simple Dockerfile approach
     build:
-      context: ./web_interface
+      context: .
       dockerfile: Dockerfile.web
     container_name: web-ui
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "5000:5000"    # Flask web interface
     depends_on:
       - gazebo-sim
     environment:
       - ROS_BRIDGE_URL=ws://gazebo-sim:9090
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./web_interface:/app
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # For Docker API access
+    networks:
+      - gazebo-pi-network
+    working_dir: /app
+    command: ["python", "app.py"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health", "||", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  # Pi Resource Monitor (FIXED: Use proper Dockerfile)
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitor
+    container_name: pi-monitor
+    restart: unless-stopped
+    ports:
+      - "8000:8000"    # Monitor web interface
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - gazebo-pi-network
+    profiles:
+      - monitoring  # Only start with: docker-compose --profile monitoring up
+
+networks:
+  gazebo-pi-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Persistent volumes for better Pi performance
+volumes:
+  gazebo_models:
+    driver: local
+  workspace_build:
+    driver: local
+  workspace_install:
+    driver: local
+  workspace_log:
+    driver: local
 ```
 
 ### Updated Scripts
@@ -203,29 +425,30 @@ Steps
 ./scripts/start_web_interface.sh
 ```
 
-## 🎯 Key Advantages on Pi
+# Test the monitor application locally first
+```bash
+cd monitor
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python monitor.py
+```
+# Visit http://localhost:8000 to test
 
-1. **Better for Teaching**: No GUI dependencies = more robust
-2. **Web-Based Control**: Students can access from any device
-3. **Resource Awareness**: Students learn optimization
-4. **Realistic Deployment**: Mirrors real robotics environments
-5. **Multi-Student Support**: Easier to scale
+# Build containers
+```bash
+cd ~/gazebo-ros-pi
+docker-compose -f docker-compose.pi.yml build
 
+# Start services
+docker-compose -f docker-compose.pi.yml up -d
 
-# **simple_robot.urdf**
-Physical Properties:
-Dimensions: 50cm x 30cm x 10cm (L x W x H)
-Mass: 1.0 kg
-Shape: Rectangular box
-Color: Blue (rgba: 0, 0, 0.8, 1)
-Inertia Values Check:
-Your inertia values look mathematically correct for a box:
+# Start with monitoring profile
+docker-compose -f docker-compose.pi.yml --profile monitoring up -d
 
-ixx = 0.0166 ✅ (rotation around X-axis)
-iyy = 0.0416 ✅ (rotation around Y-axis)
-izz = 0.0566 ✅ (rotation around Z-axis)
-
-
+# Check status
+docker-compose -f docker-compose.pi.yml ps
+```
 Web Interface: http://your-pi-ip:5000
 Resource Monitor: http://your-pi-ip:8000 (if using --profile monitoring)
 Gazebo: Headless mode, accessible via web interface
