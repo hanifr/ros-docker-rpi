@@ -1,0 +1,56 @@
+# =================================================================
+# requirements.txt - IMPROVED - Python dependencies for ROS 2 Gazebo Pi Setup
+# =================================================================
+
+# ===== WEB FRAMEWORK =====
+flask==2.3.3
+flask-socketio==5.3.6
+flask-cors==4.0.0
+
+# ===== ASYNC & WEBSOCKET SUPPORT =====
+eventlet==0.33.3
+python-socketio[client]==5.8.0
+
+# ===== HTTP & API CLIENTS =====
+requests==2.31.0
+urllib3==2.0.7
+
+# ===== SYSTEM MONITORING =====
+psutil==5.9.5
+docker==6.1.3
+
+# ===== ROS 2 PYTHON BINDINGS (for web interface) =====
+# Note: These will be installed in the ROS 2 container, not web container
+# rclpy (installed via apt in ROS 2 container)
+# std_msgs (installed via apt in ROS 2 container)
+
+# ===== DATA PROCESSING =====
+numpy==1.24.4
+pandas==2.0.3
+
+# ===== UTILITIES =====
+python-dateutil==2.8.2
+pytz==2023.3
+pyyaml==6.0.1
+
+# ===== LOGGING & DEBUGGING =====
+colorlog==6.7.0
+
+# ===== DEVELOPMENT TOOLS (optional) =====
+# flask-restful==0.3.10
+# flask-debugtoolbar==0.13.1
+
+# ===== SECURITY =====
+werkzeug==2.3.7
+
+# ===== JSON & SERIALIZATION =====
+jsonschema==4.19.2
+
+# ===== PERFORMANCE =====
+gunicorn==21.2.0  # For production deployment
+gevent==23.9.1    # Alternative to eventlet
+
+# ===== Pi-SPECIFIC MONITORING =====
+# Note: Some Pi-specific libraries may need to be installed via apt
+# - vcgencmd (for Pi temperature) - installed via apt
+# - gpio (for GPIO access) - installed via apt if needed

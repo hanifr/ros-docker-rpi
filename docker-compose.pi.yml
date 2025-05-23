@@ -1,5 +1,6 @@
-# docker-compose.pi.yml
+# docker-compose.pi.yml - CORRECTED - Optimized ROS 2 Humble for Pi 4B
 version: '3.8'
+
 services:
   gazebo-sim:
     build:
@@ -8,38 +9,174 @@ services:
     container_name: gazebo-pi
     restart: unless-stopped
     environment:
-      - ROS_MASTER_URI=http://localhost:11311
+      # ROS 2 Environment Variables
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - FASTRTPS_DEFAULT_PROFILES_FILE=/workspace/fastrtps_profile.xml
+      # Headless Gazebo
+      - DISPLAY=
       - GAZEBO_MASTER_URI=http://localhost:11345
+      - GAZEBO_MODEL_PATH=/root/.gazebo/models:/workspace/models:/worlds
+      # Pi Optimizations
+      - GAZEBO_RESOURCE_PATH=/usr/share/gazebo:/worlds
+      - PYTHONUNBUFFERED=1
+      # ROS 2 Performance Tuning
+      - RCUTILS_LOGGING_BUFFERED_STREAM=1
+      - RCUTILS_COLORIZED_OUTPUT=0
     volumes:
-      - ./catkin_ws:/catkin_ws
+      # FIXED: Use ros2_ws instead of catkin_ws for ROS 2
+      - ./ros2_ws:/workspace
       - ./models:/root/.gazebo/models  
       - ./worlds:/worlds
+      # Persistent volumes for build artifacts
+      - workspace_build:/workspace/build
+      - workspace_install:/workspace/install
+      - workspace_log:/workspace/log
+      # System mounts
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
-      - "11311:11311"  # ROS Master
       - "11345:11345"  # Gazebo Master
       - "9090:9090"    # ROSBridge WebSocket
-      - "8080:8080"    # Web Interface
+    networks:
+      - gazebo-pi-network
     deploy:
       resources:
         limits:
-          memory: 3G     # Limit for Pi
+          memory: 3G     # Pi 4B memory limit
+          cpus: '3.5'    # Leave some CPU for system
         reservations:
           memory: 1G
+          cpus: '1.0'
+    # Optimized command for ROS 2 Humble + Pi performance
     command: >
-      bash -c "source /opt/ros/noetic/setup.bash &&
-               cd /catkin_ws &&
-               catkin_make &&
-               source devel/setup.bash &&
-               roslaunch robot_gazebo headless_simulation.launch"
+      bash -c "
+        echo '🚀 Starting Gazebo ROS 2 Simulation on Pi 4B...' &&
+        source /opt/ros/humble/setup.bash &&
+        cd /workspace &&
+        
+        # Create FastRTPS profile for Pi optimization
+        cat > fastrtps_profile.xml << 'EOF'
+      <?xml version='1.0' encoding='UTF-8'?>
+      <profiles xmlns='http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles'>
+        <transport_descriptors>
+          <transport_descriptor>
+            <transport_id>udp_transport</transport_id>
+            <type>UDPv4</type>
+            <sendBufferSize>1048576</sendBufferSize>
+            <receiveBufferSize>1048576</receiveBufferSize>
+          </transport_descriptor>
+        </transport_descriptors>
+        <participant profile_name='participant_profile' is_default_profile='true'>
+          <rtps>
+            <userTransports>
+              <transport_id>udp_transport</transport_id>
+            </userTransports>
+            <useBuiltinTransports>false</useBuiltinTransports>
+          </rtps>
+        </participant>
+      </profiles>
+      EOF
+        
+        # Build workspace if needed
+        if [ ! -f install/setup.bash ] && [ -d src ] && [ \"\$(ls -A src/ 2>/dev/null)\" ]; then
+          echo '📦 Building ROS 2 workspace...' &&
+          colcon build --symlink-install \
+                       --cmake-args -DCMAKE_BUILD_TYPE=Release \
+                       --parallel-workers 2 \
+                       --event-handlers console_direct+
+        fi &&
+        
+        # Source workspace if built
+        if [ -f install/setup.bash ]; then
+          source install/setup.bash
+        fi &&
+        
+        # Start ROSBridge in background (FIXED: Correct ROS 2 launch syntax)
+        echo '🔌 Starting ROSBridge WebSocket Server...' &&
+        ros2 launch rosbridge_server rosbridge_websocket_launch.xml port:=9090 &
+        
+        # Wait a moment for ROSBridge to start
+        sleep 5 &&
+        
+        echo '🤖 Launching headless simulation...' &&
+        if [ -f src/my_robot_gazebo/launch/headless_simulation.launch.py ]; then
+          ros2 launch my_robot_gazebo headless_simulation.launch.py
+        else
+          echo '⚠️  Launch file not found, starting basic Gazebo...' &&
+          ros2 launch gazebo_ros gazebo.launch.py world:=/worlds/empty.world gui:=false
+        fi
+      "
+    healthcheck:
+      test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 topic list | grep -q '/clock' || ros2 topic list"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 90s
 
   web-interface:
+    # SIMPLIFIED: Use simple Dockerfile approach
     build:
-      context: ./web_interface
+      context: .
       dockerfile: Dockerfile.web
     container_name: web-ui
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "5000:5000"    # Flask web interface
     depends_on:
       - gazebo-sim
     environment:
       - ROS_BRIDGE_URL=ws://gazebo-sim:9090
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./web_interface:/app
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # For Docker API access
+    networks:
+      - gazebo-pi-network
+    working_dir: /app
+    command: ["python", "app.py"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health", "||", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  # Pi Resource Monitor (FIXED: Use proper Dockerfile)
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitor
+    container_name: pi-monitor
+    restart: unless-stopped
+    ports:
+      - "8000:8000"    # Monitor web interface
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - gazebo-pi-network
+    profiles:
+      - monitoring  # Only start with: docker-compose --profile monitoring up
+
+networks:
+  gazebo-pi-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Persistent volumes for better Pi performance
+volumes:
+  gazebo_models:
+    driver: local
+  workspace_build:
+    driver: local
+  workspace_install:
+    driver: local
+  workspace_log:
+    driver: local

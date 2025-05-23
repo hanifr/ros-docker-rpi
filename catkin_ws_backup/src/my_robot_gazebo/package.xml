@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>my_robot_gazebo</name>
+  <version>0.0.1</version>
+  <description>Robot Gazebo package</description>
+  <maintainer email="user@example.com">Your Name</maintainer>
+  <license>TODO</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>gazebo_ros</depend>
+  <depend>my_robot_description</depend>
+</package>

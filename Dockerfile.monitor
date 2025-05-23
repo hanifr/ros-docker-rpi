@@ -1,0 +1,33 @@
+# =================================================================
+# Dockerfile.monitor - CORRECTED VERSION (Simple and Clean) 
+# =================================================================
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    procps \
+    htop \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies for monitoring
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+        flask==2.3.3 \
+        psutil==5.9.5 \
+        docker==6.1.3 \
+        requests==2.31.0 \
+        colorlog==6.7.0
+
+# Copy monitor application
+COPY monitor/ .
+
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+CMD ["python", "monitor.py"]

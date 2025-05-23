@@ -90,8 +90,19 @@ fi
 
 # Install Python packages for web interface
 print_status "Installing Python packages..."
-sudo apt install -y python3-pip python3-venv
-pip3 install --user flask flask-socketio eventlet
+sudo apt install -y python3-pip python3-venv python3-full
+
+# Create virtual environment for the project
+print_status "Creating Python virtual environment..."
+if [ ! -d "$WORKSPACE_DIR/venv" ]; then
+    python3 -m venv "$WORKSPACE_DIR/venv"
+    source "$WORKSPACE_DIR/venv/bin/activate"
+    pip install flask flask-socketio eventlet
+    deactivate
+    print_status "Virtual environment created: $WORKSPACE_DIR/venv"
+else
+    print_status "Virtual environment already exists"
+fi
 
 # Configure system performance
 print_status "Configuring system performance..."
@@ -259,6 +270,9 @@ print_status "Next steps:"
 print_status "1. Create docker-compose.pi.yml with ROS Humble container"
 print_status "2. Create Dockerfile.arm64 for custom image"
 print_status "3. Test with simple_robot.urdf in headless mode"
+print_status "source ~/gazebo-ros-pi/venv/bin/activate"
+print_status "python your_script.py"
+print_status "deactivate"
 
 echo ""
 print_status "Setup log saved to: /tmp/pi_setup.log"
