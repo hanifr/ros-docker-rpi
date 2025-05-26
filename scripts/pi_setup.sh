@@ -6,6 +6,9 @@ set -e  # Exit on any error
 echo "🚀 Setting up Raspberry Pi 4B for Gazebo ROS Simulation (Docker Mode)..."
 echo "=================================================="
 
+# Define workspace directory early
+WORKSPACE_DIR="$HOME/gazebo-ros-pi"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -88,6 +91,13 @@ else
     print_status "Docker Compose already installed."
 fi
 
+# Create simulation workspace first
+print_status "Setting up simulation workspace..."
+if [ ! -d "$WORKSPACE_DIR" ]; then
+    mkdir -p "$WORKSPACE_DIR"/{scripts,catkin_ws/src,models,worlds,web_interface}
+    print_status "Workspace directory created: $WORKSPACE_DIR"
+fi
+
 # Install Python packages for web interface
 print_status "Installing Python packages..."
 sudo apt install -y python3-pip python3-venv python3-full
@@ -165,14 +175,6 @@ if [ ! -f /etc/docker/daemon.json ]; then
 EOF
     print_status "Docker daemon configured for Pi optimization"
     sudo systemctl restart docker
-fi
-
-# Create simulation workspace
-print_status "Setting up simulation workspace..."
-WORKSPACE_DIR="$HOME/gazebo-ros-pi"
-if [ ! -d "$WORKSPACE_DIR" ]; then
-    mkdir -p "$WORKSPACE_DIR"/{scripts,catkin_ws/src,models,worlds,web_interface}
-    print_status "Workspace directory created: $WORKSPACE_DIR"
 fi
 
 # Create system monitoring script
@@ -260,8 +262,8 @@ print_warning "Please reboot your Pi to ensure all changes take effect:"
 echo "sudo reboot"
 
 print_status "After reboot, you can:"
-echo "1. Test Docker setup: ./scripts/test_docker_setup.sh"
-echo "2. Start monitoring: ./scripts/monitor_pi_resources.sh"
+echo "1. Test Docker setup: $WORKSPACE_DIR/scripts/test_docker_setup.sh"
+echo "2. Start monitoring: $WORKSPACE_DIR/scripts/monitor_pi_resources.sh"
 echo "3. Create your Docker Compose configuration"
 echo "4. Start headless Gazebo simulation"
 
@@ -270,7 +272,7 @@ print_status "Next steps:"
 print_status "1. Create docker-compose.pi.yml with ROS Humble container"
 print_status "2. Create Dockerfile.arm64 for custom image"
 print_status "3. Test with simple_robot.urdf in headless mode"
-print_status "source ~/gazebo-ros-pi/venv/bin/activate"
+print_status "source $WORKSPACE_DIR/venv/bin/activate"
 print_status "python your_script.py"
 print_status "deactivate"
 
