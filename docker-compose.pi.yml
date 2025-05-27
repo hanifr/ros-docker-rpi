@@ -1,4 +1,4 @@
-# docker-compose.pi.yml - CORRECTED VERSION
+# docker-compose.pi.yml - SIMPLE VERSION with Robot Loading
 version: '3.8'
 
 services:
@@ -23,6 +23,8 @@ services:
       # ROS 2 Performance Tuning
       - RCUTILS_LOGGING_BUFFERED_STREAM=1
       - RCUTILS_COLORIZED_OUTPUT=0
+      # Robot Configuration - ADD THESE
+      - ROBOT_URDF_PATH=/workspace/src/my_robot_description/urdf/robot.urdf
     volumes:
       # Use ros2_ws for ROS 2
       - ./ros2_ws:/workspace
@@ -49,9 +51,10 @@ services:
         reservations:
           memory: 1G
           cpus: '1.0'
-    command: ["/scripts/start_gazebo_sim.sh"]
+    # SIMPLE COMMAND - just call script
+    command: ["/scripts/start_robot_system.sh"]
     healthcheck:
-      test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 topic list"]
+      test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 topic list | grep -E '(cmd_vel|odom)'"]
       interval: 30s
       timeout: 15s
       retries: 3
@@ -76,9 +79,10 @@ services:
       - "9091:9091"    # TF2 Web Republisher
     networks:
       - gazebo-pi-network
-    command: ["/start_tf2_web.sh"]
+    # SIMPLE COMMAND - just call script
+    command: ["/scripts/start_tf2_web.sh"]
     healthcheck:
-      test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 node list | grep tf2_web_republisher"]
+      test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 node list | grep tf2_web"]
       interval: 30s
       timeout: 15s
       retries: 3
@@ -100,6 +104,7 @@ services:
       - TF2_WEB_URL=ws://tf2-web-pub:9091
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
+      - ROBOT_NAME=differential_drive_robot
     volumes:
       - ./web_interface:/app
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -117,7 +122,7 @@ services:
   monitor:
     build:
       context: .
-      dockerfile: Dockerfile.monitor
+      dockerfile: Dockerfile.arm64
     container_name: pi-monitor
     restart: unless-stopped
     ports:
@@ -126,12 +131,14 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./scripts:/scripts
     environment:
       - PYTHONUNBUFFERED=1
     networks:
       - gazebo-pi-network
     profiles:
       - monitoring  # Only start with: docker-compose --profile monitoring up
+    command: ["/scripts/start_monitor.sh"]
 
 networks:
   gazebo-pi-network:
