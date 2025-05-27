@@ -1,5 +1,5 @@
 # =================================================================
-# requirements.txt - ENHANCED for ARM64 Pi - Python dependencies for ROS 2 Gazebo Pi Setup
+# requirements.txt - IMPROVED - Python dependencies for ROS 2 Gazebo Pi Setup
 # =================================================================
 
 # ===== WEB FRAMEWORK =====
@@ -27,7 +27,7 @@ roslibpy==1.5.0 # Fixed version for compatibility with ROS 2
 # rclpy (installed via apt in ROS 2 container)
 # std_msgs (installed via apt in ROS 2 container)
 
-# ===== DATA PROCESSING - ARM64 OPTIMIZED =====
+# ===== DATA PROCESSING =====
 numpy==1.24.4
 pandas==2.0.3
 
@@ -53,24 +53,7 @@ jsonschema==4.19.2
 gunicorn==21.2.0  # For production deployment
 gevent==23.9.1    # Alternative to eventlet
 
-# ===== ARM64 Pi BUILD TOOLS =====
-# These help with native compilation on ARM64
-wheel>=0.40.0
-setuptools>=68.0.0
-Cython>=0.29.0  # Helps with some native extensions
-
-# ===== OPTIONAL Pi-SPECIFIC ENHANCEMENTS =====
-# python-dotenv==1.0.0  # For environment variable management
-# prometheus-client==0.17.0  # For advanced monitoring
-# influxdb-client==1.36.0  # For time-series data if needed
-
 # ===== Pi-SPECIFIC MONITORING =====
 # Note: Some Pi-specific libraries may need to be installed via apt
 # - vcgencmd (for Pi temperature) - installed via apt
 # - gpio (for GPIO access) - installed via apt if needed
-
-# ===== POTENTIAL COMPATIBILITY NOTES =====
-# If you encounter issues on ARM64, try:
-# numpy==1.21.6  # Older version with better ARM64 support
-# pandas==1.5.3  # More stable on ARM64
-# docker==6.0.1  # If docker client has issues

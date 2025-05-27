@@ -1,4 +1,4 @@
-# Dockerfile.arm64 - CORRECTED VERSION with ros3djs support
+# Dockerfile.arm64 - MINIMAL WORKING - Only packages that definitely exist for ARM64
 FROM ros:humble-ros-base
 
 # Use bash for all RUN commands
@@ -39,18 +39,16 @@ RUN echo "=== CHECKING AVAILABLE ROS 2 PACKAGES ===" && \
     apt-cache search ros-humble | grep -E "(robot|tf2|rosbridge)" | head -10 && \
     echo "=== END PACKAGE CHECK ==="
 
-# Install core ROS packages that definitely exist for ARM64
-RUN echo "=== INSTALLING CORE ROS PACKAGES ===" && \
-    apt-get update && apt-get install -y \
+# Install ONLY packages that definitely exist for ARM64
+RUN apt-get update && apt-get install -y \
     ros-humble-robot-state-publisher \
     ros-humble-joint-state-publisher \
     ros-humble-tf2-ros \
     ros-humble-tf2-tools \
     ros-humble-xacro \
-    && rm -rf /var/lib/apt/lists/* && \
-    echo "✅ Core ROS packages installed"
+    && rm -rf /var/lib/apt/lists/*
 
-# Install ROSBridge (check if available)
+# Try to install ROSBridge (check if available)
 RUN echo "=== INSTALLING ROSBRIDGE ===" && \
     apt-get update && \
     if apt-cache show ros-humble-rosbridge-server >/dev/null 2>&1; then \
@@ -62,41 +60,15 @@ RUN echo "=== INSTALLING ROSBRIDGE ===" && \
     fi && \
     rm -rf /var/lib/apt/lists/*
 
-# Install message packages (graceful failure)
-RUN echo "=== INSTALLING MESSAGE PACKAGES ===" && \
+# Try to install other useful packages (graceful failure)
+RUN echo "=== INSTALLING OPTIONAL PACKAGES ===" && \
     apt-get update && \
     (apt-get install -y ros-humble-geometry-msgs || echo "geometry-msgs not available") && \
     (apt-get install -y ros-humble-std-msgs || echo "std-msgs not available") && \
     (apt-get install -y ros-humble-sensor-msgs || echo "sensor-msgs not available") && \
     (apt-get install -y ros-humble-nav-msgs || echo "nav-msgs not available") && \
     rm -rf /var/lib/apt/lists/* && \
-    echo "=== MESSAGE PACKAGES COMPLETE ==="
-
-# Install ros3djs dependencies (check availability for ARM64)
-RUN echo "=== INSTALLING ROS3DJS DEPENDENCIES ===" && \
-    apt-get update && \
-    # TF2 Web Republisher (essential for ros3djs)
-    (apt-get install -y ros-humble-tf2-web-republisher || echo "tf2-web-republisher not available") && \
-    # URDF and mesh support (avoid duplicates)
-    (apt-get install -y ros-humble-urdf || echo "urdf already installed or not available") && \
-    (apt-get install -y ros-humble-urdf-parser-plugin || echo "urdf-parser-plugin not available") && \
-    # Interactive markers support
-    (apt-get install -y ros-humble-interactive-markers || echo "interactive-markers not available") && \
-    # Additional visualization packages (check availability)
-    (apt-get install -y ros-humble-rviz-common || echo "rviz-common not available") && \
-    (apt-get install -y ros-humble-rviz-default-plugins || echo "rviz-default-plugins not available") && \
-    # Joint state publisher GUI (avoid duplicate)
-    (apt-get install -y ros-humble-joint-state-publisher-gui || echo "joint-state-publisher-gui not available") && \
-    rm -rf /var/lib/apt/lists/* && \
-    echo "✅ ros3djs dependencies installation complete"
-
-# Install Python packages for enhanced web interface
-RUN echo "=== INSTALLING PYTHON WEB PACKAGES ===" && \
-    pip3 install \
-    flask-socketio \
-    python-socketio \
-    eventlet \
-    && echo "✅ Python web packages installed"
+    echo "=== OPTIONAL PACKAGES COMPLETE ==="
 
 # Initialize rosdep
 RUN rosdep update
@@ -109,8 +81,6 @@ RUN echo "=== FINAL PACKAGE CHECK ===" && \
     ros2 pkg list | grep -E "(robot_state|tf2|rosbridge)" && \
     echo "Message packages:" && \
     ros2 pkg list | grep -E "(geometry_msgs|std_msgs|sensor_msgs)" && \
-    echo "Visualization packages:" && \
-    ros2 pkg list | grep -E "(rviz|interactive)" && \
     echo "=== PACKAGE CHECK COMPLETE ==="
 
 # Create directories
@@ -124,17 +94,16 @@ RUN echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && \
 # Create working entrypoint
 RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo 'set -e' >> /entrypoint.sh && \
-    echo 'echo "🚀 Starting ROS 2 container with ros3djs support..."' >> /entrypoint.sh && \
+    echo 'echo "🚀 Starting minimal ROS 2 container..."' >> /entrypoint.sh && \
     echo 'source /opt/ros/humble/setup.bash' >> /entrypoint.sh && \
     echo 'if [ -f /workspace/install/setup.bash ]; then source /workspace/install/setup.bash; fi' >> /entrypoint.sh && \
     echo 'echo "✅ ROS 2 ready - $(ros2 pkg list | wc -l) packages available"' >> /entrypoint.sh && \
     echo 'exec "$@"' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
-# Create ROSBridge launcher script
+# Create a ROSBridge launcher script (works with or without ros-humble-rosbridge-server)
 RUN echo '#!/bin/bash' > /start_rosbridge.sh && \
     echo 'source /opt/ros/humble/setup.bash' >> /start_rosbridge.sh && \
-    echo 'if [ -f /workspace/install/setup.bash ]; then source /workspace/install/setup.bash; fi' >> /start_rosbridge.sh && \
     echo 'if ros2 pkg list | grep -q rosbridge_server; then' >> /start_rosbridge.sh && \
     echo '    echo "✅ Using ROS 2 ROSBridge package"' >> /start_rosbridge.sh && \
     echo '    ros2 launch rosbridge_server rosbridge_websocket_launch.xml port:=9090' >> /start_rosbridge.sh && \
@@ -154,50 +123,23 @@ RUN echo '#!/bin/bash' > /start_rosbridge.sh && \
     echo 'fi' >> /start_rosbridge.sh && \
     chmod +x /start_rosbridge.sh
 
-# Create TF2 Web Republisher launcher script
-RUN echo '#!/bin/bash' > /start_tf2_web.sh && \
-    echo 'source /opt/ros/humble/setup.bash' >> /start_tf2_web.sh && \
-    echo 'if [ -f /workspace/install/setup.bash ]; then source /workspace/install/setup.bash; fi' >> /start_tf2_web.sh && \
-    echo 'echo "🌐 Starting TF2 Web Republisher..."' >> /start_tf2_web.sh && \
-    echo 'if ros2 pkg list | grep -q tf2_web_republisher; then' >> /start_tf2_web.sh && \
-    echo '    echo "✅ Using TF2 Web Republisher package"' >> /start_tf2_web.sh && \
-    echo '    ros2 run tf2_web_republisher tf2_web_republisher --ros-args -p port:=9091' >> /start_tf2_web.sh && \
-    echo 'else' >> /start_tf2_web.sh && \
-    echo '    echo "⚠️ TF2 Web Republisher not available, starting placeholder..."' >> /start_tf2_web.sh && \
-    echo '    python3 -c "' >> /start_tf2_web.sh && \
-    echo 'import socket' >> /start_tf2_web.sh && \
-    echo 'import time' >> /start_tf2_web.sh && \
-    echo 'print(\"🔄 TF2 Web Republisher placeholder on port 9091\")' >> /start_tf2_web.sh && \
-    echo 'sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)' >> /start_tf2_web.sh && \
-    echo 'sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)' >> /start_tf2_web.sh && \
-    echo 'sock.bind((\"0.0.0.0\", 9091))' >> /start_tf2_web.sh && \
-    echo 'sock.listen(1)' >> /start_tf2_web.sh && \
-    echo 'print(\"✅ TF2 placeholder listening on 0.0.0.0:9091\")' >> /start_tf2_web.sh && \
-    echo 'while True: time.sleep(1)' >> /start_tf2_web.sh && \
-    echo '"' >> /start_tf2_web.sh && \
-    echo 'fi' >> /start_tf2_web.sh && \
-    chmod +x /start_tf2_web.sh
-
 # Create test script
 RUN echo '#!/bin/bash' > /test_minimal.sh && \
-    echo 'echo "=== ROS 2 + ros3djs TEST ==="' >> /test_minimal.sh && \
+    echo 'echo "=== MINIMAL ROS 2 TEST ==="' >> /test_minimal.sh && \
     echo 'source /opt/ros/humble/setup.bash' >> /test_minimal.sh && \
     echo 'echo "ROS_DISTRO: $ROS_DISTRO"' >> /test_minimal.sh && \
     echo 'echo "Total packages: $(ros2 pkg list | wc -l)"' >> /test_minimal.sh && \
     echo 'echo "Available message types:"' >> /test_minimal.sh && \
     echo 'ros2 interface list | grep -E "(geometry_msgs|std_msgs)" | head -5 || echo "Message types may be limited"' >> /test_minimal.sh && \
-    echo 'echo "TF2 Web Republisher available: $(ros2 pkg list | grep tf2_web_republisher | wc -l)"' >> /test_minimal.sh && \
-    echo 'echo "ROSBridge available: $(ros2 pkg list | grep rosbridge | wc -l)"' >> /test_minimal.sh && \
-    echo 'echo "✅ ROS 2 + ros3djs test complete!"' >> /test_minimal.sh && \
+    echo 'echo "✅ Minimal ROS 2 test complete!"' >> /test_minimal.sh && \
     chmod +x /test_minimal.sh
 
-# Final verification
+# Final verification - make sure everything works
 RUN source /opt/ros/humble/setup.bash && \
-    echo "✅ Build complete - $(ros2 pkg list | wc -l) ROS 2 packages ready!" && \
-    echo "📦 Scripts created: $(ls -la /*.sh | wc -l)"
+    echo "✅ Minimal build complete - $(ros2 pkg list | wc -l) ROS 2 packages ready!"
 
 # Expose ports
-EXPOSE 11345 9090 9091
+EXPOSE 11345 9090
 
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]

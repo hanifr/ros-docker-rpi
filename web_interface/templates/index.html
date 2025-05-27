@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>🤖 Gazebo-ROS2-Pi Control Center</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #007acc;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(45deg, #007acc, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .container { 
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1800px;
+            margin: 0 auto;
+            min-height: calc(100vh - 100px);
+        }
+        
+        .panel { 
+            background: rgba(42, 42, 42, 0.95);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(64, 64, 64, 0.8);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .panel h2 {
+            color: #00d4ff;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            border-bottom: 2px solid rgba(0, 122, 204, 0.3);
+            padding-bottom: 0.5rem;
+        }
+        
+        .panel h3 {
+            color: #00aa88;
+            margin: 1.5rem 0 1rem 0;
+            font-size: 1.2rem;
+        }
+        
+        #ros3d-container { 
+            width: 100%;
+            height: 600px;
+            border: 2px solid #404040;
+            border-radius: 8px;
+            background: #000000;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .viewer-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #00ff00;
+            z-index: 100;
+            font-family: monospace;
+        }
+        
+        .controls { 
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .control-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        button { 
+            padding: 1rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #007acc 0%, #005c99 100%);
+            color: white;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        button:hover { 
+            background: linear-gradient(135deg, #005c99 0%, #004466 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+        }
+        
+        button:active { 
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0, 122, 204, 0.3);
+        }
+        
+        button.emergency {
+            background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
+        }
+        
+        button.emergency:hover {
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+        }
+        
+        .status { 
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border-left: 4px solid;
+        }
+        
+        .status.connected { 
+            background: rgba(45, 80, 22, 0.8);
+            color: #90ee90;
+            border-left-color: #90ee90;
+        }
+        
+        .status.disconnected { 
+            background: rgba(93, 22, 22, 0.8);
+            color: #ffcccb;
+            border-left-color: #ffcccb;
+        }
+        
+        .log { 
+            background: rgba(26, 26, 26, 0.9);
+            padding: 1rem;
+            border-radius: 6px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            border: 1px solid rgba(64, 64, 64, 0.8);
+            color: #00ff88;
+            line-height: 1.4;
+        }
+        
+        .log::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .log::-webkit-scrollbar-track {
+            background: rgba(64, 64, 64, 0.3);
+        }
+        
+        .log::-webkit-scrollbar-thumb {
+            background: rgba(0, 122, 204, 0.6);
+            border-radius: 3px;
+        }
+        
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .sensor-card {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid rgba(64, 64, 64, 0.6);
+        }
+        
+        .sensor-card h4 {
+            color: #ffaa00;
+            margin-bottom: 0.5rem;
+        }
+        
+        .sensor-value {
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: #00ff88;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 1.2rem;
+            color: #007acc;
+        }
+        
+        .loading::after {
+            content: '';
+            margin-left: 10px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 122, 204, 0.3);
+            border-top: 2px solid #007acc;
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .keyboard-help {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #cccccc;
+        }
+        
+        .keyboard-help kbd {
+            background: rgba(64, 64, 64, 0.8);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #ffffff;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            #ros3d-container {
+                height: 400px;
+            }
+            
+            .controls {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+    
+    <!-- ROS3D.js Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.89.0/build/three.min.js"></script>
+    <script src="https://static.robotwebtools.org/threejs/current/ColladaLoader.min.js"></script>
+    <script src="https://static.robotwebtools.org/ColladaAnimationCompress/current/ColladaLoader2.min.js"></script>
+    <script src="https://static.robotwebtools.org/threejs/current/STLLoader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/eventemitter2@5.0.1/lib/eventemitter2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+    <script src="https://static.robotwebtools.org/ros3djs/current/ros3d.min.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 Gazebo-ROS2-Pi Control Center</h1>
+    </div>
+    
+    <div class="container">
+        <!-- 3D Visualization Panel -->
+        <div class="panel">
+            <h2>🎯 3D Robot Visualization</h2>
+            <div id="ros3d-container">
+                <div class="loading">Initializing 3D viewer...</div>
+                <div class="viewer-overlay">
+                    <div>Camera: Q/E - Up/Down | R - Reset</div>
+                    <div>Mouse: Drag - Rotate | Wheel - Zoom</div>
+                </div>
+            </div>
+            
+            <div id="connection-status" class="status disconnected">
+                Connecting to ROS Bridge...
+            </div>
+            
+            <div id="robot-status" class="status disconnected">
+                Loading robot model...
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="panel">
+            <h2>🎮 Robot Control</h2>
+            <div class="controls">
+                <div class="control-section">
+                    <button onclick="moveRobot('forward')">⬆️ Forward</button>
+                    <button onclick="moveRobot('backward')">⬇️ Backward</button>
+                </div>
+                <div class="control-section">
+                    <button onclick="moveRobot('left')">⬅️ Turn Left</button>
+                    <button onclick="moveRobot('right')">➡️ Turn Right</button>
+                </div>
+                <div class="control-section">
+                    <button onclick="stopRobot()" class="emergency">⏹️ Stop</button>
+                    <button onclick="resetRobot()">🔄 Reset</button>
+                </div>
+            </div>
+            
+            <div class="keyboard-help">
+                <strong>Keyboard Controls:</strong><br>
+                <kbd>W/S</kbd> Forward/Backward • <kbd>A/D</kbd> Left/Right • <kbd>Space</kbd> Stop
+            </div>
+            
+            <h3>📊 Sensor Data</h3>
+            <div class="sensor-grid">
+                <div class="sensor-card">
+                    <h4>Position</h4>
+                    <div id="position-data" class="sensor-value">X: 0.00, Y: 0.00</div>
+                </div>
+                <div class="sensor-card">
+                    <h4>Velocity</h4>
+                    <div id="velocity-data" class="sensor-value">Lin: 0.00, Ang: 0.00</div>
+                </div>
+                <div class="sensor-card">
+                    <h4>Orientation</h4>
+                    <div id="orientation-data" class="sensor-value">Yaw: 0.00°</div>
+                </div>
+                <div class="sensor-card">
+                    <h4>Battery</h4>
+                    <div id="battery-data" class="sensor-value">100%</div>
+                </div>
+            </div>
+            
+            <h3>📝 Activity Log</h3>
+            <div id="robot-log" class="log">
+                Waiting for robot data...
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/ros3d_viewer.js"></script>
+    <script>
+        // Global variables
+        let ros3dViewer;
+        let ros;
+        let cmdVelPublisher;
+        let odomSubscriber;
+        let isConnected = false;
+
+        // Initialize when page loads
+        window.addEventListener('load', function() {
+            initializeROS();
+            setupKeyboardControls();
+        });
+
+        function initializeROS() {
+            const rosUrl = 'ws://' + window.location.hostname + ':9090';
+            const tf2Url = 'ws://' + window.location.hostname + ':9091';
+            
+            logMessage('🚀 Initializing ROS connections...');
+            
+            // Initialize 3D viewer
+            ros3dViewer = new ROS3DViewer('ros3d-container', rosUrl, tf2Url);
+            
+            // Setup ROS connection for controls
+            ros = new ROSLIB.Ros({
+                url: rosUrl
+            });
+
+            ros.on('connection', function() {
+                isConnected = true;
+                logMessage('✅ Connected to ROS Bridge');
+                setupROSCommunication();
+            });
+
+            ros.on('error', function(error) {
+                isConnected = false;
+                logMessage('❌ Connection Error: ' + error);
+            });
+
+            ros.on('close', function() {
+                isConnected = false;
+                logMessage('🔌 Disconnected from ROS Bridge');
+            });
+        }
+
+        function setupROSCommunication() {
+            // Publisher for robot movement
+            cmdVelPublisher = new ROSLIB.Topic({
+                ros: ros,
+                name: '/cmd_vel',
+                messageType: 'geometry_msgs/Twist'
+            });
+
+            // Subscriber for robot odometry
+            odomSubscriber = new ROSLIB.Topic({
+                ros: ros,
+                name: '/odom',
+                messageType: 'nav_msgs/Odometry'
+            });
+
+            odomSubscriber.subscribe(function(message) {
+                updateSensorData(message);
+            });
+            
+            logMessage('✅ ROS communication setup complete');
+        }
+
+        function moveRobot(direction) {
+            if (!cmdVelPublisher || !isConnected) {
+                logMessage('❌ Cannot move robot - not connected');
+                return;
+            }
+
+            const twist = new ROSLIB.Message({
+                linear: { x: 0, y: 0, z: 0 },
+                angular: { x: 0, y: 0, z: 0 }
+            });
+
+            switch(direction) {
+                case 'forward':
+                    twist.linear.x = 0.5;
+                    break;
+                case 'backward':
+                    twist.linear.x = -0.5;
+                    break;
+                case 'left':
+                    twist.angular.z = 0.5;
+                    break;
+                case 'right':
+                    twist.angular.z = -0.5;
+                    break;
+            }
+
+            cmdVelPublisher.publish(twist);
+            logMessage('🎮 Moving ' + direction);
+        }
+
+        function stopRobot() {
+            if (!cmdVelPublisher || !isConnected) {
+                logMessage('❌ Cannot stop robot - not connected');
+                return;
+            }
+
+            const twist = new ROSLIB.Message({
+                linear: { x: 0, y: 0, z: 0 },
+                angular: { x: 0, y: 0, z: 0 }
+            });
+
+            cmdVelPublisher.publish(twist);
+            logMessage('⏹️ Robot stopped');
+        }
+
+        function resetRobot() {
+            stopRobot();
+            
+            // Reset pose service call (if available)
+            const resetService = new ROSLIB.Service({
+                ros: ros,
+                name: '/reset_simulation',
+                serviceType: 'std_srvs/Empty'
+            });
+
+            const request = new ROSLIB.ServiceRequest({});
+            
+            resetService.callService(request, function(result) {
+                logMessage('🔄 Robot reset successfully');
+            }, function(error) {
+                logMessage('⚠️ Reset service not available');
+            });
+        }
+
+        function updateSensorData(odom) {
+            const pos = odom.pose.pose.position;
+            const vel = odom.twist.twist.linear;
+            const angVel = odom.twist.twist.angular;
+            const orientation = odom.pose.pose.orientation;
+            
+            // Calculate yaw from quaternion
+            const yaw = Math.atan2(
+                2 * (orientation.w * orientation.z + orientation.x * orientation.y),
+                1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
+            ) * 180 / Math.PI;
+            
+            // Update sensor displays
+            document.getElementById('position-data').textContent = 
+                `X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}`;
+            
+            document.getElementById('velocity-data').textContent = 
+                `Lin: ${Math.sqrt(vel.x*vel.x + vel.y*vel.y).toFixed(2)}, Ang: ${angVel.z.toFixed(2)}`;
+            
+            document.getElementById('orientation-data').textContent = 
+                `Yaw: ${yaw.toFixed(1)}°`;
+            
+            // Update battery (simulated)
+            const battery = Math.max(50, 100 - Math.abs(pos.x + pos.y) * 2);
+            document.getElementById('battery-data').textContent = `${battery.toFixed(0)}%`;
+        }
+
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', function(event) {
+                if (event.target.tagName.toLowerCase() === 'input') return;
+                
+                switch(event.key.toLowerCase()) {
+                    case 'w':
+                    case 'arrowup':
+                        moveRobot('forward');
+                        event.preventDefault();
+                        break;
+                    case 's':
+                    case 'arrowdown':
+                        moveRobot('backward');
+                        event.preventDefault();
+                        break;
+                    case 'a':
+                    case 'arrowleft':
+                        moveRobot('left');
+                        event.preventDefault();
+                        break;
+                    case 'd':
+                    case 'arrowright':
+                        moveRobot('right');
+                        event.preventDefault();
+                        break;
+                    case ' ':
+                        stopRobot();
+                        event.preventDefault();
+                        break;
+                }
+            });
+        }
+
+        function logMessage(message) {
+            const log = document.getElementById('robot-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            log.textContent += logEntry;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Add some demo markers periodically
+        setInterval(() => {
+            if (ros3dViewer && ros3dViewer.robotLoaded) {
+                const x = (Math.random() - 0.5) * 4;
+                const y = (Math.random() - 0.5) * 4;
+                const z = 0.1;
+                ros3dViewer.addCustomMarker({x, y, z}, 0x00ff00, 'sphere');
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

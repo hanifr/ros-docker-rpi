@@ -1,4 +1,4 @@
-# docker-compose.pi.yml - CORRECTED VERSION
+# docker-compose.pi.yml - SIMPLIFIED VERSION - No complex YAML escaping
 version: '3.8'
 
 services:
@@ -49,6 +49,7 @@ services:
         reservations:
           memory: 1G
           cpus: '1.0'
+    # FIXED: Simple command referencing external script
     command: ["/scripts/start_gazebo_sim.sh"]
     healthcheck:
       test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 topic list"]
@@ -56,33 +57,6 @@ services:
       timeout: 15s
       retries: 3
       start_period: 90s
-
-  tf2-web-republisher:
-    build:
-      context: .
-      dockerfile: Dockerfile.arm64
-    container_name: tf2-web-pub
-    restart: unless-stopped
-    depends_on:
-      - gazebo-sim
-    environment:
-      - ROS_DOMAIN_ID=0
-      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-      - PYTHONUNBUFFERED=1
-    volumes:
-      - ./ros2_ws:/workspace
-      - ./scripts:/scripts
-    ports:
-      - "9091:9091"    # TF2 Web Republisher
-    networks:
-      - gazebo-pi-network
-    command: ["/start_tf2_web.sh"]
-    healthcheck:
-      test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 node list | grep tf2_web_republisher"]
-      interval: 30s
-      timeout: 15s
-      retries: 3
-      start_period: 60s
 
   web-interface:
     build:
@@ -94,10 +68,8 @@ services:
       - "5000:5000"    # Flask web interface
     depends_on:
       - gazebo-sim
-      - tf2-web-republisher
     environment:
       - ROS_BRIDGE_URL=ws://gazebo-sim:9090
-      - TF2_WEB_URL=ws://tf2-web-pub:9091
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
     volumes:
