@@ -1,5 +1,5 @@
 #!/bin/bash
-# scripts/start_tf2_web.sh - Fixed version
+# scripts/start_tf2_web.sh - Fixed workspace sourcing
 
 set -e
 source /opt/ros/humble/setup.bash
@@ -10,18 +10,16 @@ echo "🔄 Starting TF2 Web Republisher..."
 echo "⏳ Waiting for robot system to be ready..."
 sleep 15
 
-# Check if workspace exists and is built
-if [ -d /workspace/install ]; then
-    echo "✅ Found built workspace, sourcing it"
-    cd /workspace
-    source install/setup.bash
-else
-    echo "⚠️ No built workspace found, using base ROS environment"
-fi
+# Check workspace properly - tf2 container needs different approach
+echo "🔍 Checking for workspace..."
+
+# The tf2-web-pub container might not have the built workspace
+# Use only base ROS 2 environment
+echo "✅ Using base ROS 2 environment"
 
 # Wait for TF topics to be available
 echo "⏳ Waiting for TF topics..."
-timeout=30
+timeout=60
 counter=0
 
 while [ $counter -lt $timeout ]; do
@@ -29,15 +27,19 @@ while [ $counter -lt $timeout ]; do
         echo "✅ TF topics available"
         break
     fi
-    sleep 1
-    counter=$((counter + 1))
+    echo "  Waiting... ($counter/$timeout)"
+    sleep 2
+    counter=$((counter + 2))
 done
 
-if [ $counter -eq $timeout ]; then
-    echo "⚠️ TF topics not available after ${timeout}s, starting anyway"
+if [ $counter -ge $timeout ]; then
+    echo "⚠️ TF topics not available after ${timeout}s"
+    echo "📡 Available topics:"
+    ros2 topic list 2>/dev/null | head -10
+    echo "🔄 Starting anyway..."
 fi
 
-echo "✅ Starting simple TF2 web republisher"
+echo "✅ Starting TF2 web republisher"
 
 # Start TF2 republisher
 python3 /scripts/tf2_web_republisher.py

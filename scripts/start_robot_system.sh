@@ -1,5 +1,5 @@
 #!/bin/bash
-# scripts/start_robot_system.sh - Working version with correct paths
+# scripts/start_robot_system.sh - Final working version
 
 set -e
 source /opt/ros/humble/setup.bash
@@ -20,7 +20,7 @@ if [ -d /workspace/install ]; then
     source install/setup.bash
 fi
 
-# Try both URDF files (since you have robot.urdf and simple_robot.urdf)
+# Find URDF file
 ROBOT_URDF_PATHS=(
     "/workspace/src/my_robot_description/urdf/robot.urdf"
     "/workspace/src/my_robot_description/urdf/simple_robot.urdf"
@@ -37,10 +37,6 @@ done
 
 if [ -z "$ROBOT_URDF_FILE" ]; then
     echo "❌ No valid URDF file found"
-    echo "📁 Checked paths:"
-    for path in "${ROBOT_URDF_PATHS[@]}"; do
-        echo "  - $path: $([ -f "$path" ] && echo "exists" || echo "missing")"
-    done
     exit 1
 fi
 
@@ -50,29 +46,92 @@ echo "📏 URDF file size: $(du -h "$ROBOT_URDF_FILE" | cut -f1)"
 # Read URDF content
 URDF_CONTENT=$(cat "$ROBOT_URDF_FILE")
 
-if [ -n "$URDF_CONTENT" ]; then
-    echo "📝 URDF content length: ${#URDF_CONTENT} characters"
-    
-    # Set robot_description parameter
-    echo "🔧 Setting robot_description parameter..."
-    ros2 param set robot_description "$URDF_CONTENT"
-    echo "✅ Robot description loaded successfully"
-else
+if [ -z "$URDF_CONTENT" ]; then
     echo "❌ URDF content is empty"
     exit 1
 fi
 
-# Wait for parameter to be available
-sleep 2
+echo "📝 URDF content length: ${#URDF_CONTENT} characters"
 
-# Start robot_state_publisher
-echo "🔗 Starting robot_state_publisher..."
-ros2 run robot_state_publisher robot_state_publisher &
+# SOLUTION 1: Start robot_state_publisher with URDF file directly
+echo "🔗 Starting robot_state_publisher with URDF file..."
+ros2 run robot_state_publisher robot_state_publisher --ros-args -p robot_description:="$URDF_CONTENT" &
 RSP_PID=$!
-echo "✅ robot_state_publisher started (PID: $RSP_PID)"
+echo "✅ robot_state_publisher started with URDF (PID: $RSP_PID)"
 
-# Wait for robot_state_publisher to initialize
-sleep 3
+# Wait for robot_state_publisher to initialize properly
+sleep 5
+
+# Verify it's running
+if ! kill -0 $RSP_PID 2>/dev/null; then
+    echo "❌ robot_state_publisher crashed, trying alternative method..."
+    
+    # SOLUTION 2: Use launch file approach
+    echo "🔄 Creating temporary launch file..."
+    LAUNCH_FILE="/tmp/robot_publisher.launch.py"
+    cat > "$LAUNCH_FILE" << 'EOF'
+from launch import LaunchDescription
+from launch_ros.actions import Node
+import os
+
+def generate_launch_description():
+    # Read URDF content
+    urdf_file = os.environ.get('ROBOT_URDF_PATH', '/workspace/src/my_robot_description/urdf/robot.urdf')
+    with open(urdf_file, 'r') as f:
+        robot_description = f.read()
+    
+    return LaunchDescription([
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            name='robot_state_publisher',
+            output='screen',
+            parameters=[{'robot_description': robot_description}]
+        )
+    ])
+EOF
+    
+    # Set environment variable for launch file
+    export ROBOT_URDF_PATH="$ROBOT_URDF_FILE"
+    
+    # Launch using launch file
+    echo "🚀 Launching robot_state_publisher via launch file..."
+    ros2 launch "$LAUNCH_FILE" &
+    RSP_PID=$!
+    echo "✅ robot_state_publisher launched (PID: $RSP_PID)"
+    
+    # Wait for it to start
+    sleep 8
+fi
+
+# Verify robot_state_publisher is working
+echo "🔍 Verifying robot_state_publisher..."
+timeout=15
+counter=0
+while [ $counter -lt $timeout ]; do
+    if ros2 node list 2>/dev/null | grep -q robot_state_publisher; then
+        echo "✅ robot_state_publisher confirmed running"
+        break
+    fi
+    sleep 1
+    counter=$((counter + 1))
+done
+
+if [ $counter -eq $timeout ]; then
+    echo "❌ robot_state_publisher not responding"
+    # Continue anyway - don't crash
+fi
+
+# Check if robot_description parameter is now available
+echo "🔍 Checking robot_description parameter..."
+if ros2 param list 2>/dev/null | grep -q robot_description; then
+    echo "✅ robot_description parameter confirmed"
+    # Get robot name
+    ROBOT_NAME=$(echo "$URDF_CONTENT" | grep -o 'name="[^"]*"' | head -1 | cut -d'"' -f2)
+    echo "🤖 Robot name: $ROBOT_NAME"
+else
+    echo "⚠️ robot_description parameter not found"
+fi
 
 # Start joint_state_publisher  
 echo "🦾 Starting joint_state_publisher..."
@@ -96,35 +155,29 @@ ROBOT_PID=$!
 echo "✅ Virtual robot started (PID: $ROBOT_PID)"
 
 echo ""
-echo "✅ All services started successfully!"
+echo "✅ All services started!"
 echo "  - robot_state_publisher (PID: $RSP_PID)"
 echo "  - joint_state_publisher (PID: $JSP_PID)" 
 echo "  - rosbridge_server (PID: $ROSBRIDGE_PID)"
 echo "  - virtual_robot (PID: $ROBOT_PID)"
 
 echo ""
-echo "🔍 System verification..."
-
-# Verify robot_description parameter
-sleep 2
-if ros2 param list 2>/dev/null | grep -q robot_description; then
-    echo "✅ robot_description parameter confirmed"
-    
-    # Get robot name from URDF
-    ROBOT_NAME=$(echo "$URDF_CONTENT" | grep -o 'name="[^"]*"' | head -1 | cut -d'"' -f2)
-    echo "🤖 Robot name: $ROBOT_NAME"
-else
-    echo "⚠️ robot_description parameter not found"
-fi
+echo "🔍 Final system verification..."
 
 # Check topics
 echo "📡 Key topics available:"
-ros2 topic list 2>/dev/null | grep -E "(cmd_vel|odom|joint_states|tf)" | head -10 | sed 's/^/  ✓ /'
+ros2 topic list 2>/dev/null | grep -E "(cmd_vel|odom|joint_states|tf)" | head -10 | sed 's/^/  ✓ /' || echo "  ⚠️ Limited topics available"
+
+# Check TF
+echo "🔗 TF frames:"
+ros2 run tf2_tools view_frames.py 2>/dev/null &
+sleep 3
+kill %1 2>/dev/null || true
 
 echo ""
 echo "🎉 Robot system ready!"
 echo "🌐 ROSBridge available at: ws://0.0.0.0:9090"
-echo "🕸️ Web interface should now load the robot model!"
+echo "🤖 differential_drive_robot should now be visible in web interface!"
 
 # Keep container running
 tail -f /dev/null

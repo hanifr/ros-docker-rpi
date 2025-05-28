@@ -450,3 +450,8 @@ docker-compose -f docker-compose.pi.yml build --no-cache gazebo-sim
 # ✅ ROS 2 command working  
 # ✅ ROS 2 packages available
 ```
+
+# any created scripts, ensure to change the privilege
+```bash
+sudo chmod +x *.sh *.py
+```
