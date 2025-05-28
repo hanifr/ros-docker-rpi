@@ -310,7 +310,8 @@
                 </div>
                 <div class="control-section">
                     <button onclick="RobotController.stopRobot()" class="emergency">⏹️ Stop</button>
-                    <button onclick="RobotController.resetRobot()">🔄 Reset</button>
+                    <button onclick="RobotController.executeFigureEight()">∞ Figure-8</button>
+                    <!-- <button onclick="RobotController.resetRobot()">🔄 Reset</button> -->
                 </div>
             </div>
             
@@ -393,13 +394,28 @@
                 const overlay = document.createElement('div');
                 overlay.className = 'viewer-overlay';
                 overlay.innerHTML = `
-                    <div>Simple 3D View</div>
+                    <div>Improved 3D View (Rotated)</div>
                     <div>Mouse: Drag to rotate | Wheel to zoom</div>
                 `;
                 container.appendChild(overlay);
                 
-                // Camera position
-                this.camera.position.set(3, 3, 3);
+                // Add trajectory info overlay
+                const trajectoryOverlay = document.createElement('div');
+                trajectoryOverlay.className = 'trajectory-trail';
+                trajectoryOverlay.innerHTML = `
+                    <div>Trajectory Points: <span id="trail-count">0</span></div>
+                    <div>Distance: <span id="total-distance">0.00</span>m</div>
+                `;
+                container.appendChild(trajectoryOverlay);
+                
+                // Create a world group to contain all scene elements
+                this.worldGroup = new THREE.Group();
+                
+                // Rotate the entire world 90 degrees counter-clockwise around X axis
+                this.worldGroup.rotation.x = Math.PI / 2;
+                
+                // Camera position (adjusted for rotated world - angled top-down view)
+                this.camera.position.set(0, -3, 1);
                 this.camera.lookAt(0, 0, 0);
                 
                 // Add lighting
@@ -409,48 +425,73 @@
                 directionalLight.position.set(1, 1, 1);
                 this.scene.add(directionalLight);
                 
-                // Add grid
+                // Add grid to world group (will be rotated)
                 const gridHelper = new THREE.GridHelper(10, 20, 0x444444, 0x222222);
-                this.scene.add(gridHelper);
+                this.worldGroup.add(gridHelper);
                 
-                // Add axes
+                // Add axes to world group (will be rotated)
                 const axesHelper = new THREE.AxesHelper(1);
-                this.scene.add(axesHelper);
+                this.worldGroup.add(axesHelper);
+                
+                // Add the rotated world group to the scene
+                this.scene.add(this.worldGroup);
             }
             
             createRobot() {
                 this.robotGroup = new THREE.Group();
                 
                 // Robot base (blue box)
-                const baseGeometry = new THREE.BoxGeometry(0.5, 0.3, 0.1);
-                const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x007acc });
+                const baseGeometry = new THREE.BoxGeometry(0.5, 0.3, 0.12);
+                const baseMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x007acc,
+                    roughness: 0.4,
+                    metalness: 0.3
+                });
                 const base = new THREE.Mesh(baseGeometry, baseMaterial);
                 base.position.z = 0.05;
+                base.castShadow = true;
+                base.receiveShadow = true;
                 this.robotGroup.add(base);
                 
                 // Wheels (black cylinders)
-                const wheelGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.05);
-                const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+                // Wheels (black cylinders with axle detail)
+                const wheelGeometry = new THREE.CylinderGeometry(0.09, 0.09, 0.05, 32);
+                const wheelMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x222222,
+                    roughness: 0.6,
+                    metalness: 0.2
+                });
+
+                const axleMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
                 
                 [0.175, -0.175].forEach(y => {
                     const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-                    wheel.position.set(0, y, 0.1);
-                    wheel.rotation.z = Math.PI / 2;
+                    wheel.position.set(0, y, 0.02);
+                    wheel.rotation.z = 0;  // Was: Math.PI / 2
                     this.robotGroup.add(wheel);
+                    // Axle cap (detail)
+                    const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.06, 16), axleMaterial);
+                    axle.rotation.z = 0;
+                    axle.position.copy(wheel.position);
+                    this.robotGroup.add(axle);
                 });
                 
                 // Caster (gray sphere)
-                const casterGeometry = new THREE.SphereGeometry(0.05);
-                const casterMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
+                // Caster (smoother gray sphere, slightly recessed)
+                const casterGeometry = new THREE.SphereGeometry(0.045, 24, 24);
+                const casterMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x888888,
+                    roughness: 0.8
+                });
                 const caster = new THREE.Mesh(casterGeometry, casterMaterial);
-                caster.position.set(-0.2, 0, 0.05);
+                caster.position.set(-0.2, 0, 0.045);
                 this.robotGroup.add(caster);
                 
                 // Direction arrow (red cone)
                 const arrowGeometry = new THREE.ConeGeometry(0.05, 0.15, 8);
                 const arrowMaterial = new THREE.MeshLambertMaterial({ color: 0xff3333 });
                 const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
-                arrow.position.set(0.3, 0, 0.15);
+                arrow.position.set(0.33, 0, 0.05);
                 arrow.rotation.z = -Math.PI / 2;
                 this.robotGroup.add(arrow);
                 
@@ -559,12 +600,186 @@
         // =============================================================================
         // ROBOT CONTROLLER (Separated from rendering)
         // =============================================================================
+        // class RobotController {
+        //     static ros = null;
+        //     static cmdVelPublisher = null;
+        //     static odomSubscriber = null;
+        //     static isConnected = false;
+        //     static renderer = null;
+            
+        //     static init() {
+        //         Logger.log('🤖 Initializing Robot Controller...');
+        //         this.connectToROS();
+        //     }
+            
+        //     static connectToROS() {
+        //         const rosUrl = 'ws://' + window.location.hostname + ':9090';
+        //         Logger.log('🚀 Connecting to ROS Bridge at ' + rosUrl);
+                
+        //         this.ros = new ROSLIB.Ros({ url: rosUrl });
+                
+        //         this.ros.on('connection', () => {
+        //             this.isConnected = true;
+        //             Logger.log('✅ Connected to ROS Bridge');
+        //             this.setupROSCommunication();
+        //             this.updateConnectionStatus(true);
+        //         });
+                
+        //         this.ros.on('error', (error) => {
+        //             this.isConnected = false;
+        //             Logger.log('❌ ROS Connection Error: ' + error);
+        //             this.updateConnectionStatus(false, error.toString());
+        //         });
+                
+        //         this.ros.on('close', () => {
+        //             this.isConnected = false;
+        //             Logger.log('🔌 Disconnected from ROS Bridge');
+        //             this.updateConnectionStatus(false);
+        //         });
+        //     }
+            
+        //     static setupROSCommunication() {
+        //         // Publisher for robot movement
+        //         this.cmdVelPublisher = new ROSLIB.Topic({
+        //             ros: this.ros,
+        //             name: '/cmd_vel',
+        //             messageType: 'geometry_msgs/Twist'
+        //         });
+                
+        //         // Subscriber for robot odometry
+        //         this.odomSubscriber = new ROSLIB.Topic({
+        //             ros: this.ros,
+        //             name: '/odom',
+        //             messageType: 'nav_msgs/Odometry'
+        //         });
+                
+        //         this.odomSubscriber.subscribe((message) => {
+        //             this.handleOdometryUpdate(message);
+        //         });
+                
+        //         Logger.log('✅ ROS communication setup complete');
+        //     }
+            
+        //     static handleOdometryUpdate(odom) {
+        //         const pos = odom.pose.pose.position;
+        //         const vel = odom.twist.twist.linear;
+        //         const angVel = odom.twist.twist.angular;
+        //         const orientation = odom.pose.pose.orientation;
+                
+        //         // Calculate yaw from quaternion
+        //         const yaw = Math.atan2(
+        //             2 * (orientation.w * orientation.z + orientation.x * orientation.y),
+        //             1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
+        //         );
+                
+        //         // Update 3D renderer
+        //         if (this.renderer) {
+        //             this.renderer.setRobotPosition(pos.x, pos.y, pos.z);
+        //             this.renderer.setRobotOrientation(yaw);
+        //         }
+                
+        //         // Update sensor displays
+        //         SensorDisplay.updateSensorData(odom);
+        //     }
+            
+        //     static moveRobot(direction) {
+        //         if (!this.cmdVelPublisher || !this.isConnected) {
+        //             Logger.log('❌ Cannot move robot - not connected');
+        //             return;
+        //         }
+                
+        //         const twist = new ROSLIB.Message({
+        //             linear: { x: 0, y: 0, z: 0 },
+        //             angular: { x: 0, y: 0, z: 0 }
+        //         });
+                
+        //         switch(direction) {
+        //             case 'forward':
+        //                 twist.linear.x = 0.5;
+        //                 break;
+        //             case 'backward':
+        //                 twist.linear.x = -0.5;
+        //                 break;
+        //             case 'left':
+        //                 twist.angular.z = 0.5;
+        //                 break;
+        //             case 'right':
+        //                 twist.angular.z = -0.5;
+        //                 break;
+        //         }
+                
+        //         this.cmdVelPublisher.publish(twist);
+        //         Logger.log('🎮 Moving ' + direction);
+        //     }
+            
+        //     static stopRobot() {
+        //         if (!this.cmdVelPublisher || !this.isConnected) {
+        //             Logger.log('❌ Cannot stop robot - not connected');
+        //             return;
+        //         }
+                
+        //         const twist = new ROSLIB.Message({
+        //             linear: { x: 0, y: 0, z: 0 },
+        //             angular: { x: 0, y: 0, z: 0 }
+        //         });
+                
+        //         this.cmdVelPublisher.publish(twist);
+        //         Logger.log('⏹️ Robot stopped');
+        //     }
+            
+        //     static resetRobot() {
+        //         this.stopRobot();
+                
+        //         if (!this.ros || !this.isConnected) {
+        //             Logger.log('⚠️ Cannot reset - not connected');
+        //             return;
+        //         }
+                
+        //         const resetService = new ROSLIB.Service({
+        //             ros: this.ros,
+        //             name: '/reset_simulation',
+        //             serviceType: 'std_srvs/Empty'
+        //         });
+                
+        //         const request = new ROSLIB.ServiceRequest({});
+                
+        //         resetService.callService(request, 
+        //             (result) => Logger.log('🔄 Robot reset successfully'),
+        //             (error) => Logger.log('⚠️ Reset service not available')
+        //         );
+        //     }
+            
+        //     static updateConnectionStatus(connected, errorMsg = '') {
+        //         const statusElement = document.getElementById('connection-status');
+        //         if (statusElement) {
+        //             if (connected) {
+        //                 statusElement.className = 'status connected';
+        //                 statusElement.textContent = '✅ Connected to ROS Bridge';
+        //             } else {
+        //                 statusElement.className = 'status disconnected';
+        //                 const message = errorMsg ? `❌ Connection Error: ${errorMsg}` : '❌ Disconnected from ROS Bridge';
+        //                 statusElement.textContent = message;
+        //             }
+        //         }
+        //     }
+            
+        //     static setRenderer(renderer) {
+        //         this.renderer = renderer;
+        //     }
+        // }
         class RobotController {
             static ros = null;
             static cmdVelPublisher = null;
             static odomSubscriber = null;
             static isConnected = false;
             static renderer = null;
+            
+            // Figure-8 control properties
+            static figureEightActive = false;
+            static figureEightStartTime = 0;
+            static figureEightTimer = null;
+            static currentPosition = { x: 0, y: 0 };
+            static currentTheta = 0;
             
             static init() {
                 Logger.log('🤖 Initializing Robot Controller...');
@@ -631,6 +846,10 @@
                     1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
                 );
                 
+                // Store current state for figure-8 controller
+                this.currentPosition = { x: pos.x, y: pos.y };
+                this.currentTheta = yaw;
+                
                 // Update 3D renderer
                 if (this.renderer) {
                     this.renderer.setRobotPosition(pos.x, pos.y, pos.z);
@@ -677,6 +896,11 @@
                     return;
                 }
                 
+                // Stop figure-8 if active
+                if (this.figureEightActive) {
+                    this.stopFigureEight();
+                }
+                
                 const twist = new ROSLIB.Message({
                     linear: { x: 0, y: 0, z: 0 },
                     angular: { x: 0, y: 0, z: 0 }
@@ -706,6 +930,111 @@
                     (result) => Logger.log('🔄 Robot reset successfully'),
                     (error) => Logger.log('⚠️ Reset service not available')
                 );
+            }
+            
+            // Figure-8 Pattern Functions
+            static generateFigureEightPath(t) {
+                const scale_x = 2.0;
+                const scale_y = 1.0;
+                const path_x = scale_x * Math.sin(t);
+                const path_y = scale_y * Math.sin(t) * Math.cos(t);
+                return { x: path_x, y: path_y };
+            }
+            
+            static executeFigureEight() {
+                if (this.figureEightActive) {
+                    Logger.log('⏹️ Stopping Figure-8 pattern');
+                    this.stopFigureEight();
+                    return;
+                }
+                
+                if (!this.isConnected) {
+                    Logger.log('❌ Cannot execute Figure-8 - not connected');
+                    return;
+                }
+                
+                Logger.log('∞ Starting Figure-8 pattern');
+                this.figureEightActive = true;
+                this.figureEightStartTime = Date.now();
+                
+                // Start the control loop
+                this.figureEightControlLoop();
+            }
+            
+            static stopFigureEight() {
+                this.figureEightActive = false;
+                
+                if (this.figureEightTimer) {
+                    clearTimeout(this.figureEightTimer);
+                    this.figureEightTimer = null;
+                }
+                
+                Logger.log('✅ Figure-8 pattern stopped');
+            }
+            
+            static figureEightControlLoop() {
+                if (!this.figureEightActive) {
+                    return;
+                }
+                
+                // Time parameter for path (0 to 2π over 20 seconds)
+                const elapsedTime = (Date.now() - this.figureEightStartTime) / 1000.0;
+                const period = 20.0; // 20 seconds for complete figure-8
+                const t = (2 * Math.PI * elapsedTime / period) % (2 * Math.PI);
+                
+                // Get current target point
+                const target = this.generateFigureEightPath(t);
+                
+                // Calculate next point for heading direction (look ahead)
+                const dt_look = 0.1;
+                const t_next = t + (2 * Math.PI * dt_look / period);
+                const target_next = this.generateFigureEightPath(t_next);
+                
+                // Calculate distance to target
+                const dx = target.x - this.currentPosition.x;
+                const dy = target.y - this.currentPosition.y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                // Calculate target heading (direction to next point)
+                const target_heading = Math.atan2(target_next.y - target.y, target_next.x - target.x);
+                
+                // Calculate heading error
+                let heading_error = target_heading - this.currentTheta;
+                // Normalize to [-π, π]
+                heading_error = Math.atan2(Math.sin(heading_error), Math.cos(heading_error));
+                
+                // Controller gains (from MATLAB)
+                const kp_v = 2.0;
+                const kp_omega = 5.0;
+                
+                // Calculate control inputs
+                let v = kp_v * distance;
+                let omega = kp_omega * heading_error;
+                
+                // Limit control inputs
+                v = Math.max(Math.min(v, 1.0), -1.0);
+                omega = Math.max(Math.min(omega, 2.0), -2.0);
+                
+                // Send velocity commands
+                this.sendVelocityCommand(v, omega);
+                
+                // Continue control loop at 50ms intervals (20 Hz)
+                this.figureEightTimer = setTimeout(() => {
+                    this.figureEightControlLoop();
+                }, 50);
+            }
+            
+            static sendVelocityCommand(v, omega) {
+                if (!this.cmdVelPublisher || !this.isConnected) {
+                    return;
+                }
+                
+                const twist = new ROSLIB.Message({
+                    linear: { x: v, y: 0, z: 0 },
+                    angular: { x: 0, y: 0, z: omega }
+                });
+                
+                this.cmdVelPublisher.publish(twist);
             }
             
             static updateConnectionStatus(connected, errorMsg = '') {
