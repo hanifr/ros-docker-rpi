@@ -265,173 +265,14 @@
         }
     </style>
     
-
-    <!-- Simple working libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/eventemitter2/6.4.5/eventemitter2.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/roslib/1.0.1/roslib.min.js"></script>
-    
-    <!-- Simple ROS3D replacement -->
-    <script>
-    window.ROS3D = {
-        Viewer: function(options) {
-            console.log('✅ Creating simple 3D viewer...');
-            
-            this.scene = new THREE.Scene();
-            this.camera = new THREE.PerspectiveCamera(75, options.width / options.height, 0.1, 1000);
-            this.renderer = new THREE.WebGLRenderer({ antialias: true });
-            
-            this.renderer.setSize(options.width, options.height);
-            this.renderer.setClearColor(0x111111);
-            
-            // Add to container
-            const container = document.getElementById(options.divID);
-            if (container) {
-                container.innerHTML = '';
-                container.appendChild(this.renderer.domElement);
-            }
-            
-            // Camera position
-            this.camera.position.set(3, 3, 3);
-            this.camera.lookAt(0, 0, 0);
-            
-            // Basic lighting
-            const light = new THREE.AmbientLight(0x404040, 0.6);
-            this.scene.add(light);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(1, 1, 1);
-            this.scene.add(dirLight);
-            
-            // Mouse controls
-            let mouseDown = false, mouseX = 0, mouseY = 0;
-            const canvas = this.renderer.domElement;
-            
-            canvas.onmousedown = (e) => { mouseDown = true; mouseX = e.clientX; mouseY = e.clientY; };
-            document.onmouseup = () => mouseDown = false;
-            document.onmousemove = (e) => {
-                if (!mouseDown) return;
-                const dx = e.clientX - mouseX, dy = e.clientY - mouseY;
-                const spherical = new THREE.Spherical().setFromVector3(this.camera.position);
-                spherical.theta -= dx * 0.01;
-                spherical.phi += dy * 0.01;
-                spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
-                this.camera.position.setFromSpherical(spherical);
-                this.camera.lookAt(0, 0, 0);
-                mouseX = e.clientX; mouseY = e.clientY;
-            };
-            canvas.onwheel = (e) => {
-                this.camera.position.multiplyScalar(e.deltaY > 0 ? 1.1 : 0.9);
-                e.preventDefault();
-            };
-            
-            // Animation loop
-            const animate = () => {
-                requestAnimationFrame(animate);
-                this.renderer.render(this.scene, this.camera);
-            };
-            animate();
-        },
-        
-        Grid: function(options) {
-            const geometry = new THREE.BufferGeometry();
-            const vertices = [];
-            for (let i = -10; i <= 10; i++) {
-                vertices.push(-10, 0, i, 10, 0, i, i, 0, -10, i, 0, 10);
-            }
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            return new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0x444444 }));
-        },
-        
-        Axes: function(options) {
-            const group = new THREE.Group();
-            const scale = options.scale || 1;
-            
-            // X=red, Y=green, Z=blue axes
-            [[1,0,0,0xff0000], [0,1,0,0x00ff00], [0,0,1,0x0000ff]].forEach(([x,y,z,color], i) => {
-                const geom = new THREE.CylinderGeometry(0.02, 0.02, scale);
-                const mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ color }));
-                if (i === 0) { mesh.rotation.z = -Math.PI/2; mesh.position.x = scale/2; }
-                else if (i === 1) { mesh.position.y = scale/2; }
-                else { mesh.rotation.x = Math.PI/2; mesh.position.z = scale/2; }
-                group.add(mesh);
-            });
-            return group;
-        },
-        
-        UrdfClient: function(options) {
-            console.log('🤖 Creating robot...');
-            this.ros = options.ros;
-            this.rootObject = options.rootObject;
-            
-            // Create simple robot immediately
-            const robot = new THREE.Group();
-            
-            // Base (blue box)
-            const base = new THREE.Mesh(
-                new THREE.BoxGeometry(0.5, 0.3, 0.1),
-                new THREE.MeshLambertMaterial({ color: 0x0077ff })
-            );
-            base.position.z = 0.05;
-            robot.add(base);
-            
-            // Wheels (black cylinders)
-            [0.175, -0.175].forEach(y => {
-                const wheel = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.1, 0.1, 0.05),
-                    new THREE.MeshLambertMaterial({ color: 0x333333 })
-                );
-                wheel.position.set(0, y, 0.1);
-                wheel.rotation.z = Math.PI/2;
-                robot.add(wheel);
-            });
-            
-            // Caster (gray ball)
-            const caster = new THREE.Mesh(
-                new THREE.SphereGeometry(0.05),
-                new THREE.MeshLambertMaterial({ color: 0x666666 })
-            );
-            caster.position.set(-0.2, 0, 0.05);
-            robot.add(caster);
-            
-            // Arrow (red cone)
-            const arrow = new THREE.Mesh(
-                new THREE.ConeGeometry(0.05, 0.15, 8),
-                new THREE.MeshLambertMaterial({ color: 0xff3333 })
-            );
-            arrow.position.set(0.3, 0, 0.15);
-            arrow.rotation.z = -Math.PI/2;
-            robot.add(arrow);
-            
-            this.rootObject.add(robot);
-            this.robotGroup = robot;
-            
-            // Connect to odometry
-            const odom = new ROSLIB.Topic({
-                ros: this.ros,
-                name: '/odom',
-                messageType: 'nav_msgs/Odometry'
-            });
-            
-            odom.subscribe(msg => {
-                const pos = msg.pose.pose.position;
-                const ori = msg.pose.pose.orientation;
-                robot.position.set(pos.x, pos.y, pos.z + 0.1);
-                robot.rotation.z = new THREE.Euler().setFromQuaternion(
-                    new THREE.Quaternion(ori.x, ori.y, ori.z, ori.w)
-                ).z;
-            });
-            
-            console.log('✅ Robot created and connected');
-            setTimeout(() => this.onChange && this.onChange(), 100);
-        }
-    };
-    
-    // Add prototype methods
-    ROS3D.Viewer.prototype.addObject = function(obj) { this.scene.add(obj); };
-    ROS3D.UrdfClient.prototype.on = function(event, cb) { if (event === 'change') this.onChange = cb; };
-    
-    console.log('✅ Simple ROS3D ready');
-    </script>
+    <!-- ROS3D.js Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.89.0/build/three.min.js"></script>
+    <script src="https://static.robotwebtools.org/threejs/current/ColladaLoader.min.js"></script>
+    <script src="https://static.robotwebtools.org/ColladaAnimationCompress/current/ColladaLoader2.min.js"></script>
+    <script src="https://static.robotwebtools.org/threejs/current/STLLoader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/eventemitter2@5.0.1/lib/eventemitter2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+    <script src="https://static.robotwebtools.org/ros3djs/current/ros3d.min.js"></script>
 </head>
 <body>
     <div class="header">
@@ -622,23 +463,52 @@
             logMessage('⏹️ Robot stopped');
         }
 
-        function resetRobot() {
-            stopRobot();
+        // function resetRobot() {
+        //     stopRobot();
             
-            // Reset pose service call (if available)
-            const resetService = new ROSLIB.Service({
-                ros: ros,
-                name: '/reset_simulation',
-                serviceType: 'std_srvs/Empty'
-            });
+        //     // Reset pose service call (if available)
+        //     const resetService = new ROSLIB.Service({
+        //         ros: ros,
+        //         name: '/reset_simulation',
+        //         serviceType: 'std_srvs/Empty'
+        //     });
 
-            const request = new ROSLIB.ServiceRequest({});
+        //     const request = new ROSLIB.ServiceRequest({});
             
-            resetService.callService(request, function(result) {
-                logMessage('🔄 Robot reset successfully');
-            }, function(error) {
-                logMessage('⚠️ Reset service not available');
-            });
+        //     resetService.callService(request, function(result) {
+        //         logMessage('🔄 Robot reset successfully');
+        //     }, function(error) {
+        //         logMessage('⚠️ Reset service not available');
+        //     });
+        // }
+        function resetRobot() {
+            this.stopRobot();
+            Logger.log('🔄 Resetting robot...');
+            
+            // Always do visual reset first
+            if (this.renderer) {
+                this.renderer.setRobotPosition(0, 0, 0);
+                this.renderer.setRobotOrientation(0);
+                Logger.log('🔄 Robot position reset to origin');
+            }
+            
+            // Try ROS reset service if connected
+            if (this.ros && this.isConnected) {
+                const resetService = new ROSLIB.Service({
+                    ros: this.ros,
+                    name: '/gazebo/reset_world',  // More common service name
+                    serviceType: 'std_srvs/Empty'
+                });
+                
+                const request = new ROSLIB.ServiceRequest({});
+                
+                resetService.callService(request, 
+                    (result) => Logger.log('✅ Simulation reset successfully'),
+                    (error) => Logger.log('⚠️ Simulation reset service not available (visual reset done)')
+                );
+            } else {
+                Logger.log('⚠️ Not connected to ROS (visual reset done)');
+            }
         }
 
         function updateSensorData(odom) {
