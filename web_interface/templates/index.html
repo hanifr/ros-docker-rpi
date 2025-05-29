@@ -272,6 +272,305 @@
     
 </head>
 <body>
+
+    <!-- 
+    Add this navigation component to each of your existing HTML files
+    Insert this right after your opening <body> tag or existing header
+    -->
+
+    <nav id="interface-navigation" style="
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 2px solid #007acc;
+        padding: 0.75rem 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    ">
+        <!-- Logo/Title -->
+        <div style="
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #007acc, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: #007acc;
+        ">
+            🤖 ROS 2 Platform
+        </div>
+        
+        <!-- Navigation Links -->
+        <div id="nav-links" style="
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        ">
+            <a href="/" class="nav-link" data-interface="dashboard" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🏠 <span class="nav-text">Dashboard</span>
+            </a>
+            
+            <a href="/control" class="nav-link" data-interface="control" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🎮 <span class="nav-text">Control</span>
+            </a>
+            
+            <a href="/physics" class="nav-link" data-interface="physics" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                ⚙️ <span class="nav-text">Physics</span>
+            </a>
+            
+            <a href="/data" class="nav-link" data-interface="data" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📊 <span class="nav-text">Data</span>
+            </a>
+            
+            <a href="/quality" class="nav-link" data-interface="quality" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🔬 <span class="nav-text">Quality</span>
+            </a>
+            
+            <a href="/material" class="nav-link" data-interface="material" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📦 <span class="nav-text">Material</span>
+            </a>
+            
+            <a href="/excel" class="nav-link" data-interface="excel" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📈 <span class="nav-text">Excel</span>
+            </a>
+            
+            <a href="/advanced" class="nav-link" data-interface="advanced" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(255, 165, 0, 0.2);
+                border: 1px solid rgba(255, 165, 0, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(255, 165, 0, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 165, 0, 0.2)'; this.style.transform='translateY(0)'">
+                🚀 <span class="nav-text">Advanced</span>
+            </a>
+        </div>
+        
+        <!-- Status Indicator -->
+        <div id="nav-status" style="
+            padding: 0.3rem 0.6rem;
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 15px;
+            font-size: 0.75rem;
+            color: #90ee90;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        ">
+            🟢 <span id="nav-status-text">Online</span>
+        </div>
+    </nav>
+
+    <!-- Mobile-responsive CSS for navigation -->
+    <style>
+    @media (max-width: 768px) {
+        #interface-navigation {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+        
+        #nav-links {
+            justify-content: center;
+            gap: 0.3rem !important;
+        }
+        
+        .nav-link {
+            font-size: 0.75rem !important;
+            padding: 0.4rem 0.6rem !important;
+        }
+        
+        .nav-text {
+            display: none;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .nav-link {
+            padding: 0.3rem 0.5rem !important;
+            font-size: 0.7rem !important;
+        }
+    }
+    </style>
+
+    <!-- JavaScript for navigation functionality -->
+    <script>
+    (function() {
+        // Highlight current page
+        function updateNavigation() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                const isActive = (currentPath === href) || 
+                            (currentPath === '/' && href === '/') ||
+                            (currentPath.includes(href) && href !== '/');
+                
+                if (isActive) {
+                    link.style.background = 'linear-gradient(135deg, #007acc 0%, #005c99 100%)';
+                    link.style.borderColor = '#00d4ff';
+                    link.style.boxShadow = '0 2px 8px rgba(0, 122, 204, 0.3)';
+                } else {
+                    link.style.background = 'rgba(0, 122, 204, 0.2)';
+                    link.style.borderColor = 'rgba(0, 122, 204, 0.3)';
+                    link.style.boxShadow = 'none';
+                }
+            });
+        }
+        
+        // Check ROS connection status
+        function checkConnectionStatus() {
+            fetch('/health')
+                .then(response => response.json())
+                .then(data => {
+                    const statusElement = document.getElementById('nav-status');
+                    const statusText = document.getElementById('nav-status-text');
+                    
+                    if (data.status === 'healthy') {
+                        statusElement.style.background = 'rgba(40, 167, 69, 0.2)';
+                        statusElement.style.borderColor = 'rgba(40, 167, 69, 0.3)';
+                        statusElement.style.color = '#90ee90';
+                        statusText.textContent = 'Online';
+                        statusElement.innerHTML = '🟢 <span id="nav-status-text">Online</span>';
+                    } else {
+                        statusElement.style.background = 'rgba(220, 53, 69, 0.2)';
+                        statusElement.style.borderColor = 'rgba(220, 53, 69, 0.3)';
+                        statusElement.style.color = '#ffcccb';
+                        statusElement.innerHTML = '🔴 <span id="nav-status-text">Offline</span>';
+                    }
+                })
+                .catch(error => {
+                    const statusElement = document.getElementById('nav-status');
+                    statusElement.style.background = 'rgba(255, 193, 7, 0.2)';
+                    statusElement.style.borderColor = 'rgba(255, 193, 7, 0.3)';
+                    statusElement.style.color = '#fff3cd';
+                    statusElement.innerHTML = '🟡 <span id="nav-status-text">Error</span>';
+                });
+        }
+        
+        // Initialize navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNavigation();
+            checkConnectionStatus();
+            
+            // Update status every 10 seconds
+            setInterval(checkConnectionStatus, 10000);
+        });
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                updateNavigation();
+                checkConnectionStatus();
+            }
+        });
+    })();
+    </script>
+
     <div class="header">
         <h1>🤖 Gazebo-ROS2-Pi Control Center</h1>
     </div>

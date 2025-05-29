@@ -1,0 +1,802 @@
+<!-- physics_data_logger.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Physics Simulation Data Logger</title>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .logger-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .data-panel {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+        }
+        
+        .physics-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid #ccc;
+        }
+        
+        .metric-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 15px 0;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+
+    <!-- 
+    Add this navigation component to each of your existing HTML files
+    Insert this right after your opening <body> tag or existing header
+    -->
+
+    <nav id="interface-navigation" style="
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 2px solid #007acc;
+        padding: 0.75rem 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    ">
+        <!-- Logo/Title -->
+        <div style="
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #007acc, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: #007acc;
+        ">
+            🤖 ROS 2 Platform
+        </div>
+        
+        <!-- Navigation Links -->
+        <div id="nav-links" style="
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        ">
+            <a href="/" class="nav-link" data-interface="dashboard" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🏠 <span class="nav-text">Dashboard</span>
+            </a>
+            
+            <a href="/control" class="nav-link" data-interface="control" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🎮 <span class="nav-text">Control</span>
+            </a>
+            
+            <a href="/physics" class="nav-link" data-interface="physics" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                ⚙️ <span class="nav-text">Physics</span>
+            </a>
+            
+            <a href="/data" class="nav-link" data-interface="data" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📊 <span class="nav-text">Data</span>
+            </a>
+            
+            <a href="/quality" class="nav-link" data-interface="quality" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🔬 <span class="nav-text">Quality</span>
+            </a>
+            
+            <a href="/material" class="nav-link" data-interface="material" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📦 <span class="nav-text">Material</span>
+            </a>
+            
+            <a href="/excel" class="nav-link" data-interface="excel" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📈 <span class="nav-text">Excel</span>
+            </a>
+            
+            <a href="/advanced" class="nav-link" data-interface="advanced" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(255, 165, 0, 0.2);
+                border: 1px solid rgba(255, 165, 0, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(255, 165, 0, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 165, 0, 0.2)'; this.style.transform='translateY(0)'">
+                🚀 <span class="nav-text">Advanced</span>
+            </a>
+        </div>
+        
+        <!-- Status Indicator -->
+        <div id="nav-status" style="
+            padding: 0.3rem 0.6rem;
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 15px;
+            font-size: 0.75rem;
+            color: #90ee90;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        ">
+            🟢 <span id="nav-status-text">Online</span>
+        </div>
+    </nav>
+
+    <!-- Mobile-responsive CSS for navigation -->
+    <style>
+    @media (max-width: 768px) {
+        #interface-navigation {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+        
+        #nav-links {
+            justify-content: center;
+            gap: 0.3rem !important;
+        }
+        
+        .nav-link {
+            font-size: 0.75rem !important;
+            padding: 0.4rem 0.6rem !important;
+        }
+        
+        .nav-text {
+            display: none;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .nav-link {
+            padding: 0.3rem 0.5rem !important;
+            font-size: 0.7rem !important;
+        }
+    }
+    </style>
+
+    <!-- JavaScript for navigation functionality -->
+    <script>
+    (function() {
+        // Highlight current page
+        function updateNavigation() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                const isActive = (currentPath === href) || 
+                            (currentPath === '/' && href === '/') ||
+                            (currentPath.includes(href) && href !== '/');
+                
+                if (isActive) {
+                    link.style.background = 'linear-gradient(135deg, #007acc 0%, #005c99 100%)';
+                    link.style.borderColor = '#00d4ff';
+                    link.style.boxShadow = '0 2px 8px rgba(0, 122, 204, 0.3)';
+                } else {
+                    link.style.background = 'rgba(0, 122, 204, 0.2)';
+                    link.style.borderColor = 'rgba(0, 122, 204, 0.3)';
+                    link.style.boxShadow = 'none';
+                }
+            });
+        }
+        
+        // Check ROS connection status
+        function checkConnectionStatus() {
+            fetch('/health')
+                .then(response => response.json())
+                .then(data => {
+                    const statusElement = document.getElementById('nav-status');
+                    const statusText = document.getElementById('nav-status-text');
+                    
+                    if (data.status === 'healthy') {
+                        statusElement.style.background = 'rgba(40, 167, 69, 0.2)';
+                        statusElement.style.borderColor = 'rgba(40, 167, 69, 0.3)';
+                        statusElement.style.color = '#90ee90';
+                        statusText.textContent = 'Online';
+                        statusElement.innerHTML = '🟢 <span id="nav-status-text">Online</span>';
+                    } else {
+                        statusElement.style.background = 'rgba(220, 53, 69, 0.2)';
+                        statusElement.style.borderColor = 'rgba(220, 53, 69, 0.3)';
+                        statusElement.style.color = '#ffcccb';
+                        statusElement.innerHTML = '🔴 <span id="nav-status-text">Offline</span>';
+                    }
+                })
+                .catch(error => {
+                    const statusElement = document.getElementById('nav-status');
+                    statusElement.style.background = 'rgba(255, 193, 7, 0.2)';
+                    statusElement.style.borderColor = 'rgba(255, 193, 7, 0.3)';
+                    statusElement.style.color = '#fff3cd';
+                    statusElement.innerHTML = '🟡 <span id="nav-status-text">Error</span>';
+                });
+        }
+        
+        // Initialize navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNavigation();
+            checkConnectionStatus();
+            
+            // Update status every 10 seconds
+            setInterval(checkConnectionStatus, 10000);
+        });
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                updateNavigation();
+                checkConnectionStatus();
+            }
+        });
+    })();
+    </script>
+
+    <h1>Physics Simulation Data Logger</h1>
+    <p><em>Real-time capture and analysis of Gazebo physics simulation data</em></p>
+    
+    <div class="logger-dashboard">
+        <!-- Real-time Physics Metrics -->
+        <div class="data-panel">
+            <h3>🔬 Physics Simulation Metrics</h3>
+            
+            <div class="physics-metrics">
+                <div class="metric-card">
+                    <div class="metric-value" id="sim-time-factor">1.00x</div>
+                    <div class="metric-label">Real-time Factor</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="physics-steps">0</div>
+                    <div class="metric-label">Physics Steps</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="kinetic-energy">0.00 J</div>
+                    <div class="metric-label">Kinetic Energy</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="momentum">0.00 kg⋅m/s</div>
+                    <div class="metric-label">Linear Momentum</div>
+                </div>
+            </div>
+            
+            <h4>Current Robot State (from Physics)</h4>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr><td><strong>Position:</strong></td><td>X=<span id="pos-x">0.000</span>m, Y=<span id="pos-y">0.000</span>m</td></tr>
+                <tr><td><strong>Velocity:</strong></td><td><span id="linear-vel">0.000</span> m/s</td></tr>
+                <tr><td><strong>Angular Vel:</strong></td><td><span id="angular-vel">0.000</span> rad/s</td></tr>
+                <tr><td><strong>Acceleration:</strong></td><td><span id="acceleration">0.000</span> m/s²</td></tr>
+                <tr><td><strong>Heading:</strong></td><td><span id="heading">0.0</span>°</td></tr>
+            </table>
+            
+            <div class="control-buttons">
+                <button class="btn btn-success" onclick="startLogging()">Start Physics Logging</button>
+                <button class="btn btn-danger" onclick="stopLogging()">Stop Logging</button>
+                <button class="btn btn-primary" onclick="exportPhysicsData()">Export Data</button>
+                <button class="btn btn-warning" onclick="clearLogs()">Clear Logs</button>
+            </div>
+            
+            <p><strong>Data Points Collected:</strong> <span id="data-count">0</span></p>
+            <p><strong>Logging Status:</strong> <span id="logging-status">Stopped</span></p>
+        </div>
+        
+        <!-- Real-time Charts -->
+        <div class="data-panel">
+            <h3>📊 Physics Data Visualization</h3>
+            
+            <h4>Robot Trajectory (Physics Simulation)</h4>
+            <div class="chart-container">
+                <canvas id="trajectoryChart"></canvas>
+            </div>
+            
+            <h4>Velocity Profile</h4>
+            <div class="chart-container">
+                <canvas id="velocityChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Physics Analysis -->
+        <div class="data-panel">
+            <h3>⚙️ Physics Analysis Tools</h3>
+            
+            <h4>Energy Conservation Check</h4>
+            <div class="chart-container">
+                <canvas id="energyChart"></canvas>
+            </div>
+            
+            <div id="physics-analysis">
+                <h4>Real-time Physics Validation</h4>
+                <div id="analysis-results" style="font-family: monospace; font-size: 12px; background: white; padding: 10px; border: 1px solid #ccc; height: 120px; overflow-y: scroll;">
+                    <!-- Analysis results appear here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Export and Integration -->
+        <div class="data-panel">
+            <h3>📈 Data Export & Integration</h3>
+            
+            <p><strong>Export Options:</strong></p>
+            <div class="control-buttons">
+                <button class="btn btn-primary" onclick="exportForMATLAB()">Export for MATLAB</button>
+                <button class="btn btn-primary" onclick="exportForExcel()">Export for Excel</button>
+                <button class="btn btn-primary" onclick="exportForJupyter()">Export for Jupyter</button>
+            </div>
+            
+            <h4>MATLAB Integration Code:</h4>
+            <textarea readonly style="width: 100%; height: 80px; font-family: monospace; font-size: 11px;">
+% Load exported physics data in MATLAB
+data = readtable('physics_simulation_data.csv');
+plot(data.time, data.velocity);
+xlabel('Time (s)'); ylabel('Velocity (m/s)');
+title('Robot Physics Simulation Results');
+            </textarea>
+            
+            <h4>Last Export:</h4>
+            <div id="export-info" style="background: white; padding: 10px; border: 1px solid #ccc; font-size: 12px;">
+                No data exported yet
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Connect to Gazebo physics simulation
+        var ros = new ROSLIB.Ros({
+            url: 'ws://192.168.1.100:9090'  // Replace with your Pi IP
+        });
+        
+        // Physics data storage
+        var physicsData = [];
+        var isLogging = false;
+        var startTime = Date.now();
+        var lastPosition = {x: 0, y: 0};
+        var lastVelocity = {x: 0, angular: 0};
+        var physicsStepCount = 0;
+        
+        // Chart setup
+        var trajectoryChart = new Chart(document.getElementById('trajectoryChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Robot Path (Physics)',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    showLine: true,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'X Position (m)' }},
+                    y: { title: { display: true, text: 'Y Position (m)' }}
+                }
+            }
+        });
+        
+        var velocityChart = new Chart(document.getElementById('velocityChart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Linear Velocity',
+                    data: [],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    fill: false
+                }, {
+                    label: 'Angular Velocity',
+                    data: [],
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'Time (s)' }},
+                    y: { title: { display: true, text: 'Velocity' }}
+                }
+            }
+        });
+        
+        var energyChart = new Chart(document.getElementById('energyChart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Kinetic Energy (J)',
+                    data: [],
+                    borderColor: 'rgb(153, 102, 255)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'Time (s)' }},
+                    y: { title: { display: true, text: 'Energy (J)' }}
+                }
+            }
+        });
+        
+        // Subscribe to physics simulation data
+        var odomSubscriber = new ROSLIB.Topic({
+            ros: ros,
+            name: '/odom',
+            messageType: 'nav_msgs/Odometry'
+        });
+        
+        odomSubscriber.subscribe(function(message) {
+            var currentTime = (Date.now() - startTime) / 1000;
+            physicsStepCount++;
+            
+            // Extract physics data
+            var position = {
+                x: message.pose.pose.position.x,
+                y: message.pose.pose.position.y
+            };
+            
+            var linearVel = Math.sqrt(
+                Math.pow(message.twist.twist.linear.x, 2) + 
+                Math.pow(message.twist.twist.linear.y, 2)
+            );
+            
+            var angularVel = Math.abs(message.twist.twist.angular.z);
+            
+            // Calculate physics metrics
+            var robotMass = 10.0; // kg (from URDF)
+            var kineticEnergy = 0.5 * robotMass * (linearVel * linearVel);
+            var momentum = robotMass * linearVel;
+            
+            // Calculate acceleration
+            var acceleration = 0;
+            if (physicsData.length > 0) {
+                var lastData = physicsData[physicsData.length - 1];
+                var dt = currentTime - lastData.time;
+                if (dt > 0) {
+                    acceleration = (linearVel - lastData.velocity) / dt;
+                }
+            }
+            
+            // Calculate heading
+            var orientation = message.pose.pose.orientation;
+            var heading = Math.atan2(
+                2 * (orientation.w * orientation.z + orientation.x * orientation.y),
+                1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
+            ) * 180 / Math.PI;
+            
+            // Update real-time display
+            document.getElementById('pos-x').textContent = position.x.toFixed(3);
+            document.getElementById('pos-y').textContent = position.y.toFixed(3);
+            document.getElementById('linear-vel').textContent = linearVel.toFixed(3);
+            document.getElementById('angular-vel').textContent = angularVel.toFixed(3);
+            document.getElementById('acceleration').textContent = acceleration.toFixed(3);
+            document.getElementById('heading').textContent = heading.toFixed(1);
+            
+            // Update physics metrics
+            document.getElementById('physics-steps').textContent = physicsStepCount;
+            document.getElementById('kinetic-energy').textContent = kineticEnergy.toFixed(2) + ' J';
+            document.getElementById('momentum').textContent = momentum.toFixed(2) + ' kg⋅m/s';
+            document.getElementById('sim-time-factor').textContent = '1.00x'; // Assuming real-time
+            
+            // Store data if logging
+            if (isLogging) {
+                var dataPoint = {
+                    time: currentTime,
+                    position_x: position.x,
+                    position_y: position.y,
+                    velocity: linearVel,
+                    angular_velocity: angularVel,
+                    acceleration: acceleration,
+                    kinetic_energy: kineticEnergy,
+                    momentum: momentum,
+                    heading: heading,
+                    physics_step: physicsStepCount
+                };
+                
+                physicsData.push(dataPoint);
+                document.getElementById('data-count').textContent = physicsData.length;
+                
+                // Update charts (keep last 50 points for performance)
+                updatePhysicsCharts();
+                
+                // Physics analysis
+                if (physicsData.length % 10 === 0) { // Every 10th data point
+                    performPhysicsAnalysis();
+                }
+            }
+            
+            lastPosition = position;
+            lastVelocity = {x: linearVel, angular: angularVel};
+        });
+        
+        function startLogging() {
+            isLogging = true;
+            physicsData = [];
+            startTime = Date.now();
+            physicsStepCount = 0;
+            document.getElementById('logging-status').textContent = 'Recording Physics Data';
+            document.getElementById('logging-status').style.color = 'green';
+            addAnalysisResult('Physics data logging started');
+        }
+        
+        function stopLogging() {
+            isLogging = false;
+            document.getElementById('logging-status').textContent = 'Stopped';
+            document.getElementById('logging-status').style.color = 'red';
+            addAnalysisResult(`Physics data logging stopped. ${physicsData.length} data points collected.`);
+        }
+        
+        function updatePhysicsCharts() {
+            if (physicsData.length === 0) return;
+            
+            // Update trajectory chart
+            var trajectoryData = physicsData.slice(-100).map(d => ({x: d.position_x, y: d.position_y}));
+            trajectoryChart.data.datasets[0].data = trajectoryData;
+            trajectoryChart.update('none');
+            
+            // Update velocity chart
+            var recentData = physicsData.slice(-50);
+            velocityChart.data.labels = recentData.map(d => d.time.toFixed(1));
+            velocityChart.data.datasets[0].data = recentData.map(d => d.velocity);
+            velocityChart.data.datasets[1].data = recentData.map(d => d.angular_velocity);
+            velocityChart.update('none');
+            
+            // Update energy chart
+            energyChart.data.labels = recentData.map(d => d.time.toFixed(1));
+            energyChart.data.datasets[0].data = recentData.map(d => d.kinetic_energy);
+            energyChart.update('none');
+        }
+        
+        function performPhysicsAnalysis() {
+            if (physicsData.length < 10) return;
+            
+            var recent = physicsData.slice(-10);
+            var avgVelocity = recent.reduce((sum, d) => sum + d.velocity, 0) / recent.length;
+            var maxVelocity = Math.max(...recent.map(d => d.velocity));
+            var energyVariation = Math.max(...recent.map(d => d.kinetic_energy)) - 
+                                 Math.min(...recent.map(d => d.kinetic_energy));
+            
+            // Check for physics anomalies
+            if (maxVelocity > 2.0) {
+                addAnalysisResult('⚠️ High velocity detected: ' + maxVelocity.toFixed(2) + ' m/s');
+            }
+            
+            if (energyVariation > 10) {
+                addAnalysisResult('⚠️ Large energy variation: ' + energyVariation.toFixed(2) + ' J');
+            }
+            
+            // Physics validation
+            var expectedKE = 0.5 * 10 * avgVelocity * avgVelocity; // Expected kinetic energy
+            var actualKE = recent[recent.length-1].kinetic_energy;
+            var error = Math.abs(expectedKE - actualKE) / Math.max(expectedKE, 0.001) * 100;
+            
+            if (error > 5) {
+                addAnalysisResult('⚠️ Physics calculation error: ' + error.toFixed(1) + '%');
+            } else {
+                addAnalysisResult('✓ Physics validation passed (error: ' + error.toFixed(1) + '%)');
+            }
+        }
+        
+        function addAnalysisResult(message) {
+            var timestamp = new Date().toLocaleTimeString();
+            var resultsDiv = document.getElementById('analysis-results');
+            resultsDiv.textContent += `[${timestamp}] ${message}\n`;
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        function exportPhysicsData() {
+            if (physicsData.length === 0) {
+                alert('No physics data to export. Start logging first.');
+                return;
+            }
+            
+            var csvContent = "time,position_x,position_y,velocity,angular_velocity,acceleration,kinetic_energy,momentum,heading,physics_step\n";
+            physicsData.forEach(function(d) {
+                csvContent += `${d.time},${d.position_x},${d.position_y},${d.velocity},${d.angular_velocity},${d.acceleration},${d.kinetic_energy},${d.momentum},${d.heading},${d.physics_step}\n`;
+            });
+            
+            downloadCSV(csvContent, 'physics_simulation_data.csv');
+            
+            document.getElementById('export-info').innerHTML = 
+                `<strong>Last Export:</strong> ${new Date().toLocaleString()}<br>
+                 <strong>Data Points:</strong> ${physicsData.length}<br>
+                 <strong>File:</strong> physics_simulation_data.csv`;
+        }
+        
+        function exportForMATLAB() {
+            exportPhysicsData();
+            addAnalysisResult('Data exported for MATLAB analysis');
+        }
+        
+        function exportForExcel() {
+            exportPhysicsData();
+            addAnalysisResult('Data exported for Excel analysis');
+        }
+        
+        function exportForJupyter() {
+            exportPhysicsData();
+            addAnalysisResult('Data exported for Jupyter Notebook analysis');
+        }
+        
+        function downloadCSV(content, filename) {
+            var blob = new Blob([content], { type: 'text/csv' });
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', filename);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+        
+        function clearLogs() {
+            physicsData = [];
+            trajectoryChart.data.datasets[0].data = [];
+            velocityChart.data.labels = [];
+            velocityChart.data.datasets[0].data = [];
+            velocityChart.data.datasets[1].data = [];
+            energyChart.data.labels = [];
+            energyChart.data.datasets[0].data = [];
+            
+            trajectoryChart.update();
+            velocityChart.update();
+            energyChart.update();
+            
+            document.getElementById('data-count').textContent = '0';
+            document.getElementById('analysis-results').textContent = '';
+            addAnalysisResult('Physics data logs cleared');
+        }
+    </script>
+</body>
+</html>

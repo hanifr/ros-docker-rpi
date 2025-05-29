@@ -1,0 +1,707 @@
+
+<!-- quality_control.html  -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quality Control Station</title>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+    <style>
+        .qc-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .qc-panel {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .inspection-point {
+            background: #e9ecef;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #6c757d;
+        }
+        
+        .inspection-point.current {
+            border-left-color: #007bff;
+            background: #e7f3ff;
+        }
+        
+        .inspection-point.completed {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .inspection-point.failed {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-ready { background: #28a745; }
+        .status-running { background: #ffc107; }
+        .status-error { background: #dc3545; }
+        
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+
+    <!-- 
+    Add this navigation component to each of your existing HTML files
+    Insert this right after your opening <body> tag or existing header
+    -->
+
+    <nav id="interface-navigation" style="
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 2px solid #007acc;
+        padding: 0.75rem 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    ">
+        <!-- Logo/Title -->
+        <div style="
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #007acc, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: #007acc;
+        ">
+            🤖 ROS 2 Platform
+        </div>
+        
+        <!-- Navigation Links -->
+        <div id="nav-links" style="
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        ">
+            <a href="/" class="nav-link" data-interface="dashboard" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🏠 <span class="nav-text">Dashboard</span>
+            </a>
+            
+            <a href="/control" class="nav-link" data-interface="control" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🎮 <span class="nav-text">Control</span>
+            </a>
+            
+            <a href="/physics" class="nav-link" data-interface="physics" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                ⚙️ <span class="nav-text">Physics</span>
+            </a>
+            
+            <a href="/data" class="nav-link" data-interface="data" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📊 <span class="nav-text">Data</span>
+            </a>
+            
+            <a href="/quality" class="nav-link" data-interface="quality" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🔬 <span class="nav-text">Quality</span>
+            </a>
+            
+            <a href="/material" class="nav-link" data-interface="material" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📦 <span class="nav-text">Material</span>
+            </a>
+            
+            <a href="/excel" class="nav-link" data-interface="excel" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📈 <span class="nav-text">Excel</span>
+            </a>
+            
+            <a href="/advanced" class="nav-link" data-interface="advanced" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(255, 165, 0, 0.2);
+                border: 1px solid rgba(255, 165, 0, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(255, 165, 0, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 165, 0, 0.2)'; this.style.transform='translateY(0)'">
+                🚀 <span class="nav-text">Advanced</span>
+            </a>
+        </div>
+        
+        <!-- Status Indicator -->
+        <div id="nav-status" style="
+            padding: 0.3rem 0.6rem;
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 15px;
+            font-size: 0.75rem;
+            color: #90ee90;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        ">
+            🟢 <span id="nav-status-text">Online</span>
+        </div>
+    </nav>
+
+    <!-- Mobile-responsive CSS for navigation -->
+    <style>
+    @media (max-width: 768px) {
+        #interface-navigation {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+        
+        #nav-links {
+            justify-content: center;
+            gap: 0.3rem !important;
+        }
+        
+        .nav-link {
+            font-size: 0.75rem !important;
+            padding: 0.4rem 0.6rem !important;
+        }
+        
+        .nav-text {
+            display: none;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .nav-link {
+            padding: 0.3rem 0.5rem !important;
+            font-size: 0.7rem !important;
+        }
+    }
+    </style>
+
+    <!-- JavaScript for navigation functionality -->
+    <script>
+    (function() {
+        // Highlight current page
+        function updateNavigation() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                const isActive = (currentPath === href) || 
+                            (currentPath === '/' && href === '/') ||
+                            (currentPath.includes(href) && href !== '/');
+                
+                if (isActive) {
+                    link.style.background = 'linear-gradient(135deg, #007acc 0%, #005c99 100%)';
+                    link.style.borderColor = '#00d4ff';
+                    link.style.boxShadow = '0 2px 8px rgba(0, 122, 204, 0.3)';
+                } else {
+                    link.style.background = 'rgba(0, 122, 204, 0.2)';
+                    link.style.borderColor = 'rgba(0, 122, 204, 0.3)';
+                    link.style.boxShadow = 'none';
+                }
+            });
+        }
+        
+        // Check ROS connection status
+        function checkConnectionStatus() {
+            fetch('/health')
+                .then(response => response.json())
+                .then(data => {
+                    const statusElement = document.getElementById('nav-status');
+                    const statusText = document.getElementById('nav-status-text');
+                    
+                    if (data.status === 'healthy') {
+                        statusElement.style.background = 'rgba(40, 167, 69, 0.2)';
+                        statusElement.style.borderColor = 'rgba(40, 167, 69, 0.3)';
+                        statusElement.style.color = '#90ee90';
+                        statusText.textContent = 'Online';
+                        statusElement.innerHTML = '🟢 <span id="nav-status-text">Online</span>';
+                    } else {
+                        statusElement.style.background = 'rgba(220, 53, 69, 0.2)';
+                        statusElement.style.borderColor = 'rgba(220, 53, 69, 0.3)';
+                        statusElement.style.color = '#ffcccb';
+                        statusElement.innerHTML = '🔴 <span id="nav-status-text">Offline</span>';
+                    }
+                })
+                .catch(error => {
+                    const statusElement = document.getElementById('nav-status');
+                    statusElement.style.background = 'rgba(255, 193, 7, 0.2)';
+                    statusElement.style.borderColor = 'rgba(255, 193, 7, 0.3)';
+                    statusElement.style.color = '#fff3cd';
+                    statusElement.innerHTML = '🟡 <span id="nav-status-text">Error</span>';
+                });
+        }
+        
+        // Initialize navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNavigation();
+            checkConnectionStatus();
+            
+            // Update status every 10 seconds
+            setInterval(checkConnectionStatus, 10000);
+        });
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                updateNavigation();
+                checkConnectionStatus();
+            }
+        });
+    })();
+    </script>
+
+    <h1>Automated Quality Control Station</h1>
+    
+    <div class="qc-dashboard">
+        <!-- Control Panel -->
+        <div class="qc-panel">
+            <h3>System Control</h3>
+            <p>Status: <span class="status-indicator" id="system-status-indicator"></span><span id="system-status">Ready</span></p>
+            <p>Current Cycle: <span id="current-cycle">0</span></p>
+            <p>Parts Inspected: <span id="parts-inspected">0</span></p>
+            <p>Pass Rate: <span id="pass-rate">--</span>%</p>
+            
+            <div class="control-buttons">
+                <button class="btn btn-success" onclick="startInspection()">Start Inspection</button>
+                <button class="btn btn-warning" onclick="pauseInspection()">Pause</button>
+                <button class="btn btn-danger" onclick="stopInspection()">Stop</button>
+                <button class="btn btn-primary" onclick="resetSystem()">Reset</button>
+            </div>
+        </div>
+        
+        <!-- Inspection Points -->
+        <div class="qc-panel">
+            <h3>Inspection Sequence</h3>
+            <div id="inspection-points">
+                <div class="inspection-point" id="point-1">
+                    <strong>Station A - Visual Inspection</strong><br>
+                    Position: (1.0, 0.0)<br>
+                    Status: <span class="point-status">Pending</span>
+                </div>
+                <div class="inspection-point" id="point-2">
+                    <strong>Station B - Dimensional Check</strong><br>
+                    Position: (2.0, 1.0)<br>
+                    Status: <span class="point-status">Pending</span>
+                </div>
+                <div class="inspection-point" id="point-3">
+                    <strong>Station C - Functional Test</strong><br>
+                    Position: (0.0, 2.0)<br>
+                    Status: <span class="point-status">Pending</span>
+                </div>
+                <div class="inspection-point" id="point-home">
+                    <strong>Home Position</strong><br>
+                    Position: (0.0, 0.0)<br>
+                    Status: <span class="point-status">Ready</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Panel -->
+        <div class="qc-panel">
+            <h3>Inspection Results</h3>
+            <div id="results-log" style="height: 300px; overflow-y: scroll; font-family: monospace; font-size: 12px; background: white; padding: 10px; border: 1px solid #ccc;">
+                <!-- Results will be logged here -->
+            </div>
+            <div class="control-buttons">
+                <button class="btn btn-primary" onclick="exportResults()">Export Results</button>
+                <button class="btn btn-warning" onclick="clearResults()">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ROS 2 connection
+        var ros = new ROSLIB.Ros({ url: 'ws://[raspberry-pi-ip]:9090' });
+        
+        // System state
+        var systemState = 'READY';  // READY, RUNNING, PAUSED, ERROR
+        var currentCycle = 0;
+        var partsInspected = 0;
+        var passedParts = 0;
+        var currentPoint = 0;
+        var inspectionResults = [];
+        
+        // Inspection sequence
+        var inspectionPoints = [
+            { name: 'Station A', x: 1.0, y: 0.0, test: 'Visual Inspection' },
+            { name: 'Station B', x: 2.0, y: 1.0, test: 'Dimensional Check' },
+            { name: 'Station C', x: 0.0, y: 2.0, test: 'Functional Test' },
+            { name: 'Home', x: 0.0, y: 0.0, test: 'Return to Base' }
+        ];
+        
+        // ROS 2 topics
+        var cmdVel = new ROSLIB.Topic({
+            ros: ros,
+            name: '/cmd_vel',
+            messageType: 'geometry_msgs/Twist'
+        });
+        
+        var odomSubscriber = new ROSLIB.Topic({
+            ros: ros,
+            name: '/odom',
+            messageType: 'nav_msgs/Odometry'
+        });
+        
+        var currentPosition = { x: 0, y: 0 };
+        
+        // Subscribe to robot position
+        odomSubscriber.subscribe(function(message) {
+            currentPosition.x = message.pose.pose.position.x;
+            currentPosition.y = message.pose.pose.position.y;
+            
+            // Check if robot reached target during inspection
+            if (systemState === 'RUNNING') {
+                var target = inspectionPoints[currentPoint];
+                var distance = Math.sqrt(
+                    Math.pow(currentPosition.x - target.x, 2) + 
+                    Math.pow(currentPosition.y - target.y, 2)
+                );
+                
+                if (distance < 0.2) {  // Reached target
+                    performInspection(currentPoint);
+                }
+            }
+        });
+        
+        function updateSystemStatus(status) {
+            systemState = status;
+            document.getElementById('system-status').textContent = status;
+            
+            var indicator = document.getElementById('system-status-indicator');
+            indicator.className = 'status-indicator';
+            
+            switch(status) {
+                case 'READY':
+                    indicator.classList.add('status-ready');
+                    break;
+                case 'RUNNING':
+                    indicator.classList.add('status-running');
+                    break;
+                case 'ERROR':
+                    indicator.classList.add('status-error');
+                    break;
+            }
+        }
+        
+        function startInspection() {
+            if (systemState !== 'READY') return;
+            
+            updateSystemStatus('RUNNING');
+            currentCycle++;
+            currentPoint = 0;
+            document.getElementById('current-cycle').textContent = currentCycle;
+            
+            // Reset inspection points visual status
+            for (let i = 1; i <= 3; i++) {
+                var point = document.getElementById(`point-${i}`);
+                point.className = 'inspection-point';
+                point.querySelector('.point-status').textContent = 'Pending';
+            }
+            
+            logResult(`Cycle ${currentCycle}: Starting inspection sequence`);
+            navigateToPoint(currentPoint);
+        }
+        
+        function navigateToPoint(pointIndex) {
+            var target = inspectionPoints[pointIndex];
+            
+            // Update visual indicator
+            document.querySelectorAll('.inspection-point').forEach(el => {
+                el.classList.remove('current');
+            });
+            
+            if (pointIndex < 3) {
+                document.getElementById(`point-${pointIndex + 1}`).classList.add('current');
+            }
+            
+            logResult(`Navigating to ${target.name} at (${target.x}, ${target.y})`);
+            
+            // Simple navigation - move toward target
+            var moveInterval = setInterval(function() {
+                var dx = target.x - currentPosition.x;
+                var dy = target.y - currentPosition.y;
+                var distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance < 0.1) {
+                    clearInterval(moveInterval);
+                    stopRobot();
+                    return;
+                }
+                
+                var twist = new ROSLIB.Message({
+                    linear: { 
+                        x: Math.sign(dx) * Math.min(0.5, Math.abs(dx)), 
+                        y: 0, 
+                        z: 0 
+                    },
+                    angular: { 
+                        x: 0, 
+                        y: 0, 
+                        z: Math.sign(dy) * Math.min(0.3, Math.abs(dy)) 
+                    }
+                });
+                cmdVel.publish(twist);
+            }, 100);
+        }
+        
+        function performInspection(pointIndex) {
+            if (pointIndex >= inspectionPoints.length - 1) {
+                // Completed all inspections
+                completeInspectionCycle();
+                return;
+            }
+            
+            var point = inspectionPoints[pointIndex];
+            logResult(`Performing ${point.test} at ${point.name}`);
+            
+            // Simulate inspection (random pass/fail)
+            setTimeout(function() {
+                var passed = Math.random() > 0.2;  // 80% pass rate
+                
+                var result = {
+                    cycle: currentCycle,
+                    station: point.name,
+                    test: point.test,
+                    timestamp: new Date().toISOString(),
+                    result: passed ? 'PASS' : 'FAIL',
+                    score: passed ? (0.85 + Math.random() * 0.15) : (0.3 + Math.random() * 0.4)
+                };
+                
+                inspectionResults.push(result);
+                
+                // Update visual status
+                var pointElement = document.getElementById(`point-${pointIndex + 1}`);
+                pointElement.classList.remove('current');
+                pointElement.classList.add(passed ? 'completed' : 'failed');
+                pointElement.querySelector('.point-status').textContent = passed ? 'PASSED' : 'FAILED';
+                
+                logResult(`${point.test}: ${passed ? 'PASSED' : 'FAILED'} (Score: ${result.score.toFixed(2)})`);
+                
+                if (passed) passedParts++;
+                partsInspected++;
+                
+                // Update statistics
+                document.getElementById('parts-inspected').textContent = partsInspected;
+                var passRate = (passedParts / partsInspected * 100).toFixed(1);
+                document.getElementById('pass-rate').textContent = passRate;
+                
+                // Move to next point
+                currentPoint++;
+                navigateToPoint(currentPoint);
+                
+            }, 2000);  // 2 second inspection time
+        }
+        
+        function completeInspectionCycle() {
+            logResult(`Cycle ${currentCycle} completed. Returning to ready state.`);
+            updateSystemStatus('READY');
+            currentPoint = 0;
+        }
+        
+        function pauseInspection() {
+            if (systemState === 'RUNNING') {
+                updateSystemStatus('PAUSED');
+                stopRobot();
+                logResult('Inspection paused');
+            }
+        }
+        
+        function stopInspection() {
+            updateSystemStatus('READY');
+            stopRobot();
+            logResult('Inspection stopped');
+        }
+        
+        function resetSystem() {
+            updateSystemStatus('READY');
+            stopRobot();
+            currentCycle = 0;
+            partsInspected = 0;
+            passedParts = 0;
+            inspectionResults = [];
+            
+            document.getElementById('current-cycle').textContent = '0';
+            document.getElementById('parts-inspected').textContent = '0';
+            document.getElementById('pass-rate').textContent = '--';
+            
+            // Reset visual indicators
+            document.querySelectorAll('.inspection-point').forEach(el => {
+                el.className = 'inspection-point';
+                el.querySelector('.point-status').textContent = 'Pending';
+            });
+            
+            logResult('System reset');
+        }
+        
+        function stopRobot() {
+            var twist = new ROSLIB.Message({
+                linear: { x: 0, y: 0, z: 0 },
+                angular: { x: 0, y: 0, z: 0 }
+            });
+            cmdVel.publish(twist);
+        }
+        
+        function logResult(message) {
+            var timestamp = new Date().toLocaleTimeString();
+            var logEntry = `[${timestamp}] ${message}\n`;
+            var logDiv = document.getElementById('results-log');
+            logDiv.textContent += logEntry;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function exportResults() {
+            if (inspectionResults.length === 0) {
+                alert('No results to export');
+                return;
+            }
+            
+            var csvContent = "cycle,station,test,timestamp,result,score\n";
+            inspectionResults.forEach(function(result) {
+                csvContent += `${result.cycle},${result.station},${result.test},${result.timestamp},${result.result},${result.score}\n`;
+            });
+            
+            var blob = new Blob([csvContent], { type: 'text/csv' });
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `quality_control_results_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+        
+        function clearResults() {
+            document.getElementById('results-log').textContent = '';
+        }
+        
+        // Initialize system
+        updateSystemStatus('READY');
+    </script>
+</body>
+</html>

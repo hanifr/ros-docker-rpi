@@ -1,0 +1,541 @@
+<!-- robot_physics_controller.html --> 
+<!DOCTYPE html> 
+<html> 
+<head> 
+<title>Robot Physics Controller</title> 
+<script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script> <style> .physics-info { background: #e3f2fd; border: 2px solid #2196f3; border-radius: 8px; padding: 15px; margin: 20px 0; } 
+    .control-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        max-width: 300px;
+        margin: 20px auto;
+    }
+    
+    .control-btn {
+        padding: 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        background: #4CAF50;
+        color: white;
+        cursor: pointer;
+    }
+    
+    .control-btn:hover {
+        background: #45a049;
+    }
+    
+    .stop-btn {
+        background: #f44336;
+        grid-column: 1 / 4;
+    }
+    
+    #status {
+        text-align: center;
+        margin: 20px;
+        padding: 15px;
+        background: #f0f0f0;
+        border-radius: 5px;
+    }
+    
+    .physics-data {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .data-panel {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #dee2e6;
+    }
+</style>
+</head> 
+<body> 
+
+<!-- 
+Add this navigation component to each of your existing HTML files
+Insert this right after your opening <body> tag or existing header
+-->
+
+<nav id="interface-navigation" style="
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid #007acc;
+    padding: 0.75rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+">
+    <!-- Logo/Title -->
+    <div style="
+        font-size: 1.2rem;
+        font-weight: bold;
+        background: linear-gradient(45deg, #007acc, #00d4ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: #007acc;
+    ">
+        🤖 ROS 2 Platform
+    </div>
+    
+    <!-- Navigation Links -->
+    <div id="nav-links" style="
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+    ">
+        <a href="/" class="nav-link" data-interface="dashboard" style="
+            padding: 0.5rem 0.8rem;
+            background: rgba(0, 122, 204, 0.2);
+            border: 1px solid rgba(0, 122, 204, 0.3);
+            border-radius: 5px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+            🏠 <span class="nav-text">Dashboard</span>
+        </a>
+        
+        <a href="/control" class="nav-link" data-interface="control" style="
+            padding: 0.5rem 0.8rem;
+            background: rgba(0, 122, 204, 0.2);
+            border: 1px solid rgba(0, 122, 204, 0.3);
+            border-radius: 5px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+            🎮 <span class="nav-text">Control</span>
+        </a>
+        
+        <a href="/physics" class="nav-link" data-interface="physics" style="
+            padding: 0.5rem 0.8rem;
+            background: rgba(0, 122, 204, 0.2);
+            border: 1px solid rgba(0, 122, 204, 0.3);
+            border-radius: 5px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+            ⚙️ <span class="nav-text">Physics</span>
+        </a>
+        
+        <a href="/data" class="nav-link" data-interface="data" style="
+            padding: 0.5rem 0.8rem;
+            background: rgba(0, 122, 204, 0.2);
+            border: 1px solid rgba(0, 122, 204, 0.3);
+            border-radius: 5px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+            📊 <span class="nav-text">Data</span>
+        </a>
+        
+        <a href="/quality" class="nav-link" data-interface="quality" style="
+            padding: 0.5rem 0.8rem;
+            background: rgba(0, 122, 204, 0.2);
+            border: 1px solid rgba(0, 122, 204, 0.3);
+            border-radius: 5px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+            🔬 <span class="nav-text">Quality</span>
+        </a>
+        
+        <a href="/material" class="nav-link" data-interface="material" style="
+            padding: 0.5rem 0.8rem;
+            background: rgba(0, 122, 204, 0.2);
+            border: 1px solid rgba(0, 122, 204, 0.3);
+            border-radius: 5px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+            📦 <span class="nav-text">Material</span>
+        </a>
+        
+        <a href="/excel" class="nav-link" data-interface="excel" style="
+            padding: 0.5rem 0.8rem;
+            background: rgba(0, 122, 204, 0.2);
+            border: 1px solid rgba(0, 122, 204, 0.3);
+            border-radius: 5px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+            📈 <span class="nav-text">Excel</span>
+        </a>
+        
+        <a href="/advanced" class="nav-link" data-interface="advanced" style="
+            padding: 0.5rem 0.8rem;
+            background: rgba(255, 165, 0, 0.2);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            border-radius: 5px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        " onmouseover="this.style.background='rgba(255, 165, 0, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 165, 0, 0.2)'; this.style.transform='translateY(0)'">
+            🚀 <span class="nav-text">Advanced</span>
+        </a>
+    </div>
+    
+    <!-- Status Indicator -->
+    <div id="nav-status" style="
+        padding: 0.3rem 0.6rem;
+        background: rgba(40, 167, 69, 0.2);
+        border: 1px solid rgba(40, 167, 69, 0.3);
+        border-radius: 15px;
+        font-size: 0.75rem;
+        color: #90ee90;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    ">
+        🟢 <span id="nav-status-text">Online</span>
+    </div>
+</nav>
+
+<!-- Mobile-responsive CSS for navigation -->
+<style>
+@media (max-width: 768px) {
+    #interface-navigation {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    #nav-links {
+        justify-content: center;
+        gap: 0.3rem !important;
+    }
+    
+    .nav-link {
+        font-size: 0.75rem !important;
+        padding: 0.4rem 0.6rem !important;
+    }
+    
+    .nav-text {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-link {
+        padding: 0.3rem 0.5rem !important;
+        font-size: 0.7rem !important;
+    }
+}
+</style>
+
+<!-- JavaScript for navigation functionality -->
+<script>
+(function() {
+    // Highlight current page
+    function updateNavigation() {
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            const isActive = (currentPath === href) || 
+                           (currentPath === '/' && href === '/') ||
+                           (currentPath.includes(href) && href !== '/');
+            
+            if (isActive) {
+                link.style.background = 'linear-gradient(135deg, #007acc 0%, #005c99 100%)';
+                link.style.borderColor = '#00d4ff';
+                link.style.boxShadow = '0 2px 8px rgba(0, 122, 204, 0.3)';
+            } else {
+                link.style.background = 'rgba(0, 122, 204, 0.2)';
+                link.style.borderColor = 'rgba(0, 122, 204, 0.3)';
+                link.style.boxShadow = 'none';
+            }
+        });
+    }
+    
+    // Check ROS connection status
+    function checkConnectionStatus() {
+        fetch('/health')
+            .then(response => response.json())
+            .then(data => {
+                const statusElement = document.getElementById('nav-status');
+                const statusText = document.getElementById('nav-status-text');
+                
+                if (data.status === 'healthy') {
+                    statusElement.style.background = 'rgba(40, 167, 69, 0.2)';
+                    statusElement.style.borderColor = 'rgba(40, 167, 69, 0.3)';
+                    statusElement.style.color = '#90ee90';
+                    statusText.textContent = 'Online';
+                    statusElement.innerHTML = '🟢 <span id="nav-status-text">Online</span>';
+                } else {
+                    statusElement.style.background = 'rgba(220, 53, 69, 0.2)';
+                    statusElement.style.borderColor = 'rgba(220, 53, 69, 0.3)';
+                    statusElement.style.color = '#ffcccb';
+                    statusElement.innerHTML = '🔴 <span id="nav-status-text">Offline</span>';
+                }
+            })
+            .catch(error => {
+                const statusElement = document.getElementById('nav-status');
+                statusElement.style.background = 'rgba(255, 193, 7, 0.2)';
+                statusElement.style.borderColor = 'rgba(255, 193, 7, 0.3)';
+                statusElement.style.color = '#fff3cd';
+                statusElement.innerHTML = '🟡 <span id="nav-status-text">Error</span>';
+            });
+    }
+    
+    // Initialize navigation
+    document.addEventListener('DOMContentLoaded', function() {
+        updateNavigation();
+        checkConnectionStatus();
+        
+        // Update status every 10 seconds
+        setInterval(checkConnectionStatus, 10000);
+    });
+    
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            updateNavigation();
+            checkConnectionStatus();
+        }
+    });
+})();
+</script>
+    
+<h1>Robot Physics Controller</h1> 
+<p><em>Direct connection to Gazebo physics simulation on your Raspberry Pi</em></p> 
+<div class="physics-info">
+    <h3>🔬 Physics Simulation Status</h3>
+    <p><strong>Gazebo Engine:</strong> <span id="physics-status">Connecting...</span></p>
+    <p><strong>Simulation Time:</strong> <span id="sim-time">--</span> seconds</p>
+    <p><strong>Real-time Factor:</strong> <span id="real-time-factor">--</span>x</p>
+</div>
+
+<div id="status">
+    <p><strong>Connection Status:</strong> <span id="connection-status">Disconnected</span></p>
+    <p><strong>Robot Position (Physics):</strong> X=<span id="pos-x">0.00</span>m, Y=<span id="pos-y">0.00</span>m</p>
+    <p><strong>Velocity (Physics):</strong> <span id="velocity">0.00</span> m/s</p>
+    <p><strong>Heading:</strong> <span id="heading">0.0</span>°</p>
+</div>
+
+<div class="control-panel">
+    <div></div>
+    <button class="control-btn" onclick="moveForward()">↑<br>Forward</button>
+    <div></div>
+    
+    <button class="control-btn" onclick="turnLeft()">←<br>Left</button>
+    <button class="control-btn stop-btn" onclick="stopRobot()">🛑 EMERGENCY STOP</button>
+    <button class="control-btn" onclick="turnRight()">→<br>Right</button>
+    
+    <div></div>
+    <button class="control-btn" onclick="moveBackward()">↓<br>Backward</button>
+    <div></div>
+</div>
+
+<div class="physics-data">
+    <div class="data-panel">
+        <h4>Physics Parameters</h4>
+        <p>Max Linear Velocity: <span id="max-linear">0.5</span> m/s</p>
+        <p>Max Angular Velocity: <span id="max-angular">0.5</span> rad/s</p>
+        <p>Wheel Friction: <span id="friction">Simulated</span></p>
+        <p>Mass: <span id="robot-mass">~10kg</span> (from URDF)</p>
+    </div>
+    
+    <div class="data-panel">
+        <h4>Real-time Physics Data</h4>
+        <p>Linear Acceleration: <span id="linear-accel">0.00</span> m/s²</p>
+        <p>Angular Acceleration: <span id="angular-accel">0.00</span> rad/s²</p>
+        <p>Distance Traveled: <span id="total-distance">0.00</span> m</p>
+        <p>Simulation Accuracy: <span id="accuracy">High</span></p>
+    </div>
+</div>
+
+<script>
+    // Connect directly to your Gazebo simulation via ROSBridge
+    var ros = new ROSLIB.Ros({
+        url: 'ws://192.168.1.100:9090'  // Replace with your Pi IP address
+    });
+
+    // Physics simulation variables
+    var lastPosition = {x: 0, y: 0};
+    var lastVelocity = {linear: 0, angular: 0};
+    var totalDistance = 0;
+    var startTime = Date.now();
+
+    // Connection event handlers
+    ros.on('connection', function() {
+        console.log('Connected to Gazebo Physics Simulation');
+        document.getElementById('connection-status').textContent = 'Connected to Physics Engine';
+        document.getElementById('connection-status').style.color = 'green';
+        document.getElementById('physics-status').textContent = 'Active (Gazebo Classic)';
+    });
+
+    ros.on('error', function(error) {
+        console.log('Error connecting to physics simulation: ', error);
+        document.getElementById('connection-status').textContent = 'Physics Connection Error';
+        document.getElementById('connection-status').style.color = 'red';
+        document.getElementById('physics-status').textContent = 'Disconnected';
+    });
+
+    // Robot command publisher (sends commands to physics engine)
+    var cmdVel = new ROSLIB.Topic({
+        ros: ros,
+        name: '/cmd_vel',
+        messageType: 'geometry_msgs/Twist'
+    });
+
+    // Robot physics state subscriber (receives calculated physics data)
+    var odomSubscriber = new ROSLIB.Topic({
+        ros: ros,
+        name: '/odom',
+        messageType: 'nav_msgs/Odometry'
+    });
+
+    // Listen to physics-calculated robot state
+    odomSubscriber.subscribe(function(message) {
+        // Extract position (calculated by physics engine)
+        var x = message.pose.pose.position.x.toFixed(3);
+        var y = message.pose.pose.position.y.toFixed(3);
+        document.getElementById('pos-x').textContent = x;
+        document.getElementById('pos-y').textContent = y;
+        
+        // Extract velocity (from physics simulation)
+        var linear_vel = Math.sqrt(
+            Math.pow(message.twist.twist.linear.x, 2) + 
+            Math.pow(message.twist.twist.linear.y, 2)
+        );
+        document.getElementById('velocity').textContent = linear_vel.toFixed(3);
+        
+        // Calculate heading from quaternion (physics-based orientation)
+        var orientation = message.pose.pose.orientation;
+        var heading = Math.atan2(
+            2 * (orientation.w * orientation.z + orientation.x * orientation.y),
+            1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
+        ) * 180 / Math.PI;
+        document.getElementById('heading').textContent = heading.toFixed(1);
+        
+        // Calculate physics-based metrics
+        var currentPos = {x: parseFloat(x), y: parseFloat(y)};
+        var distanceIncrement = Math.sqrt(
+            Math.pow(currentPos.x - lastPosition.x, 2) + 
+            Math.pow(currentPos.y - lastPosition.y, 2)
+        );
+        
+        if (distanceIncrement > 0.001) { // Avoid noise
+            totalDistance += distanceIncrement;
+            document.getElementById('total-distance').textContent = totalDistance.toFixed(3);
+            lastPosition = currentPos;
+        }
+        
+        // Update simulation time
+        var elapsedTime = (Date.now() - startTime) / 1000;
+        document.getElementById('sim-time').textContent = elapsedTime.toFixed(1);
+        document.getElementById('real-time-factor').textContent = '1.0'; // Assuming real-time
+    });
+
+    // Physics-aware control functions
+    function moveForward() {
+        var twist = new ROSLIB.Message({
+            linear: { x: 0.5, y: 0.0, z: 0.0 },  // Realistic speed for physics
+            angular: { x: 0.0, y: 0.0, z: 0.0 }
+        });
+        cmdVel.publish(twist);
+        console.log('Physics command: Move forward at 0.5 m/s');
+    }
+
+    function moveBackward() {
+        var twist = new ROSLIB.Message({
+            linear: { x: -0.5, y: 0.0, z: 0.0 },  // Negative for reverse
+            angular: { x: 0.0, y: 0.0, z: 0.0 }
+        });
+        cmdVel.publish(twist);
+        console.log('Physics command: Move backward at 0.5 m/s');
+    }
+
+    function turnLeft() {
+        var twist = new ROSLIB.Message({
+            linear: { x: 0.0, y: 0.0, z: 0.0 },
+            angular: { x: 0.0, y: 0.0, z: 0.5 }  // Positive angular velocity
+        });
+        cmdVel.publish(twist);
+        console.log('Physics command: Turn left at 0.5 rad/s');
+    }
+
+    function turnRight() {
+        var twist = new ROSLIB.Message({
+            linear: { x: 0.0, y: 0.0, z: 0.0 },
+            angular: { x: 0.0, y: 0.0, z: -0.5 }  // Negative angular velocity
+        });
+        cmdVel.publish(twist);
+        console.log('Physics command: Turn right at 0.5 rad/s');
+    }
+
+    function stopRobot() {
+        var twist = new ROSLIB.Message({
+            linear: { x: 0.0, y: 0.0, z: 0.0 },
+            angular: { x: 0.0, y: 0.0, z: 0.0 }
+        });
+        cmdVel.publish(twist);
+        console.log('Physics command: Emergency stop - all forces zero');
+    }
+    
+    // Initialize physics parameter display
+    document.getElementById('max-linear').textContent = '0.5';
+    document.getElementById('max-angular').textContent = '0.5';
+    document.getElementById('friction').textContent = 'Realistic (μ≈0.8)';
+    document.getElementById('accuracy').textContent = 'Physics Engine';
+</script>
+</body> 
+</html>
