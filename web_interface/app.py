@@ -56,7 +56,7 @@ def excel_integration():
 
 @app.route('/advanced')
 def advanced_control():
-    """Your original sophisticated interface"""
+    """Original sophisticated interface"""
     return render_template('index.html')
 
 # =============================================================================
