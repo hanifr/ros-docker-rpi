@@ -474,6 +474,7 @@
     <script>
         // ROS 2 connection
         var ros = new ROSLIB.Ros({ url: 'ws://' + window.location.hostname + ':9090' });
+        // var ros = new ROSLIB.Ros({ url: 'ws://192.168.1.104:9090' });
         var isConnected = false;
 
         ros.on('connection', function() {
@@ -719,6 +720,9 @@
             navigateToLocation(currentJob.pickup);
         }
         
+     // =============================================================================
+     // CONTROL ALGORITHMS PRESENT IN THE "FIXED" CODE
+     // =============================================================================
         function navigateToLocation(locationId) {
             var target = locations[locationId];
             logMessage(`Navigating to ${target.name} at (${target.x}, ${target.y})`);
@@ -766,6 +770,313 @@
                 });
                 cmdVel.publish(twist);
             }, 100); // Faster update rate
+        }
+
+    // =============================================================================
+    // 🚀 ADVANCED CONTROL ALGORITHMS (If you want more sophisticated control)
+    // =============================================================================
+
+    // 🎯 ALGORITHM 2: PID CONTROLLER (More advanced than simple P-controller)
+        function navigateToLocation_WithPIDControl(locationId) {
+            var target = locations[locationId];
+            
+            // PID state variables
+            var prevLinearError = 0;
+            var prevAngularError = 0;
+            var linearErrorIntegral = 0;
+            var angularErrorIntegral = 0;
+            var dt = 0.1; // 100ms update rate
+            
+            var navigationInterval = setInterval(function() {
+                if (systemState !== 'RUNNING') {
+                    clearInterval(navigationInterval);
+                    return;
+                }
+                
+                // Calculate position and heading errors
+                var dx = target.x - robotPosition.x;
+                var dy = target.y - robotPosition.y;
+                var distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance < 0.15) {
+                    clearInterval(navigationInterval);
+                    stopRobot();
+                    logMessage(`Arrived at ${locations[locationId].name}`);
+                    return;
+                }
+                
+                var targetHeading = Math.atan2(dy, dx);
+                var headingError = targetHeading - robotOrientation;
+                
+                // Normalize heading error
+                while (headingError > Math.PI) headingError -= 2 * Math.PI;
+                while (headingError < -Math.PI) headingError += 2 * Math.PI;
+                
+                // 🎯 PID CONTROL ALGORITHM
+                // Linear velocity PID
+                var kp_linear = 0.8, ki_linear = 0.1, kd_linear = 0.05;
+                linearErrorIntegral += distance * dt;
+                var linearErrorDerivative = (distance - prevLinearError) / dt;
+                var linearVel = kp_linear * distance + 
+                            ki_linear * linearErrorIntegral + 
+                            kd_linear * linearErrorDerivative;
+                
+                // Angular velocity PID  
+                var kp_angular = 3.0, ki_angular = 0.2, kd_angular = 0.1;
+                angularErrorIntegral += headingError * dt;
+                var angularErrorDerivative = (headingError - prevAngularError) / dt;
+                var angularVel = kp_angular * headingError + 
+                                ki_angular * angularErrorIntegral + 
+                                kd_angular * angularErrorDerivative;
+                
+                // Anti-windup for integral terms
+                linearErrorIntegral = Math.max(Math.min(linearErrorIntegral, 1.0), -1.0);
+                angularErrorIntegral = Math.max(Math.min(angularErrorIntegral, 1.0), -1.0);
+                
+                // Saturation
+                linearVel = Math.max(Math.min(linearVel, 0.6), 0);
+                angularVel = Math.max(Math.min(angularVel, 1.5), -1.5);
+                
+                // Store previous errors for derivative calculation
+                prevLinearError = distance;
+                prevAngularError = headingError;
+                
+                var twist = new ROSLIB.Message({
+                    linear: { x: linearVel, y: 0, z: 0 },
+                    angular: { x: 0, y: 0, z: angularVel }
+                });
+                cmdVel.publish(twist);
+            }, 100);
+        }
+
+    // 🎯 ALGORITHM 3: PURE PURSUIT CONTROLLER (Path following algorithm)
+        function navigateToLocation_WithPurePursuit(locationId) {
+            var target = locations[locationId];
+            var lookaheadDistance = 0.5; // meters
+            
+            var navigationInterval = setInterval(function() {
+                if (systemState !== 'RUNNING') {
+                    clearInterval(navigationInterval);
+                    return;
+                }
+                
+                var dx = target.x - robotPosition.x;
+                var dy = target.y - robotPosition.y;
+                var distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance < 0.15) {
+                    clearInterval(navigationInterval);
+                    stopRobot();
+                    logMessage(`Arrived at ${locations[locationId].name}`);
+                    return;
+                }
+                
+                // 🎯 PURE PURSUIT ALGORITHM
+                // Transform target to robot local frame
+                var cos_theta = Math.cos(robotOrientation);
+                var sin_theta = Math.sin(robotOrientation);
+                
+                var local_x = cos_theta * dx + sin_theta * dy;
+                var local_y = -sin_theta * dx + cos_theta * dy;
+                
+                // Calculate curvature using Pure Pursuit formula
+                var L = Math.min(lookaheadDistance, distance);
+                var curvature = 2 * local_y / (L * L);
+                
+                // Calculate velocities
+                var linearVel = Math.min(0.5, distance * 0.8);
+                var angularVel = curvature * linearVel;
+                
+                // Limit angular velocity
+                angularVel = Math.max(Math.min(angularVel, 1.0), -1.0);
+                
+                var twist = new ROSLIB.Message({
+                    linear: { x: linearVel, y: 0, z: 0 },
+                    angular: { x: 0, y: 0, z: angularVel }
+                });
+                cmdVel.publish(twist);
+            }, 100);
+        }
+
+    // 🎯 ALGORITHM 4: STATE MACHINE CONTROLLER (High-level control)
+        var RobotStateMachine = {
+            state: 'IDLE', // IDLE, NAVIGATING, PICKING, DROPPING, ERROR
+            targetLocation: null,
+            
+            // State machine update function
+            update: function() {
+                switch(this.state) {
+                    case 'IDLE':
+                        if (currentJob && systemState === 'RUNNING') {
+                            this.state = 'NAVIGATING';
+                            this.targetLocation = (currentJob.stage === 'PICKUP') ? 
+                                                currentJob.pickup : currentJob.dropoff;
+                            this.startNavigation();
+                        }
+                        break;
+                        
+                    case 'NAVIGATING':
+                        if (this.hasArrived()) {
+                            this.state = (currentJob.stage === 'PICKUP') ? 'PICKING' : 'DROPPING';
+                            this.performAction();
+                        }
+                        break;
+                        
+                    case 'PICKING':
+                        // Simulate picking operation
+                        setTimeout(() => {
+                            currentJob.stage = 'TRANSPORT';
+                            this.state = 'IDLE'; // Will transition to navigating to dropoff
+                            logMessage('✅ Pickup completed');
+                        }, 2000);
+                        break;
+                        
+                    case 'DROPPING':
+                        // Simulate dropping operation
+                        setTimeout(() => {
+                            this.completeJob();
+                            this.state = 'IDLE';
+                            logMessage('✅ Dropoff completed');
+                        }, 2000);
+                        break;
+                        
+                    case 'ERROR':
+                        this.handleError();
+                        break;
+                }
+            },
+            
+            startNavigation: function() {
+                logMessage(`🎯 Navigating to ${locations[this.targetLocation].name}`);
+                navigateToLocation_WithPIDControl(this.targetLocation);
+            },
+            
+            hasArrived: function() {
+                var target = locations[this.targetLocation];
+                var distance = Math.sqrt(
+                    Math.pow(robotPosition.x - target.x, 2) + 
+                    Math.pow(robotPosition.y - target.y, 2)
+                );
+                return distance < 0.2;
+            },
+            
+            performAction: function() {
+                stopRobot();
+                logMessage(`🤖 Performing ${this.state.toLowerCase()} operation...`);
+            },
+            
+            completeJob: function() {
+                materialCounts[currentJob.pickup] -= currentJob.quantity;
+                materialCounts[currentJob.dropoff] += currentJob.quantity;
+                updateMaterialCounts();
+                
+                jobsCompleted++;
+                document.getElementById('jobs-completed').textContent = jobsCompleted;
+                
+                currentJob = null;
+                document.getElementById('current-job').textContent = 'None';
+            },
+            
+            handleError: function() {
+                stopRobot();
+                pauseSystem();
+                logMessage('❌ Error state - system paused');
+                this.state = 'IDLE';
+            }
+        };
+
+        // Start state machine (call this in initialization)
+        setInterval(() => RobotStateMachine.update(), 200);
+
+        // 🎯 ALGORITHM 5: VELOCITY SMOOTHER (Anti-jerk control)
+        var VelocitySmoother = {
+            currentLinear: 0,
+            currentAngular: 0,
+            maxLinearAccel: 0.5,   // m/s²
+            maxAngularAccel: 1.0,  // rad/s²
+            dt: 0.1,
+            
+            smooth: function(targetLinear, targetAngular) {
+                // Calculate maximum velocity change allowed
+                var maxLinearChange = this.maxLinearAccel * this.dt;
+                var maxAngularChange = this.maxAngularAccel * this.dt;
+                
+                // Limit acceleration
+                var linearChange = targetLinear - this.currentLinear;
+                var angularChange = targetAngular - this.currentAngular;
+                
+                linearChange = Math.max(Math.min(linearChange, maxLinearChange), -maxLinearChange);
+                angularChange = Math.max(Math.min(angularChange, maxAngularChange), -maxAngularChange);
+                
+                // Update current velocities
+                this.currentLinear += linearChange;
+                this.currentAngular += angularChange;
+                
+                return {
+                    linear: this.currentLinear,
+                    angular: this.currentAngular
+                };
+            }
+        };
+
+        // Usage in navigation:
+        function publishSmoothedVelocity(targetLinear, targetAngular) {
+            var smoothed = VelocitySmoother.smooth(targetLinear, targetAngular);
+            
+            var twist = new ROSLIB.Message({
+                linear: { x: smoothed.linear, y: 0, z: 0 },
+                angular: { x: 0, y: 0, z: smoothed.angular }
+            });
+            cmdVel.publish(twist);
+        }
+
+    // =============================================================================
+    // 🎯 ALGORITHM 6: OBSTACLE AVOIDANCE (Dynamic Window Approach - Simplified)
+    // =============================================================================
+        function navigateWithObstacleAvoidance(locationId) {
+            var target = locations[locationId];
+            
+            var navigationInterval = setInterval(function() {
+                // Get sensor data (assuming laser scan or similar)
+                var obstacles = getObstacleData(); // You'd need to implement this
+                
+                // Generate velocity candidates
+                var velocityCandidates = generateVelocityCandidates();
+                
+                // Evaluate each candidate
+                var bestVelocity = null;
+                var bestScore = -Infinity;
+                
+                velocityCandidates.forEach(function(vel) {
+                    var score = evaluateVelocity(vel, target, obstacles);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestVelocity = vel;
+                    }
+                });
+                
+                if (bestVelocity) {
+                    var twist = new ROSLIB.Message({
+                        linear: { x: bestVelocity.linear, y: 0, z: 0 },
+                        angular: { x: 0, y: 0, z: bestVelocity.angular }
+                    });
+                    cmdVel.publish(twist);
+                } else {
+                    stopRobot(); // No safe velocity found
+                }
+            }, 100);
+        }
+
+        function evaluateVelocity(vel, target, obstacles) {
+            // Scoring function combining:
+            // 1. Progress toward goal
+            // 2. Obstacle clearance  
+            // 3. Velocity preferences
+            var goalScore = calculateGoalScore(vel, target);
+            var obstacleScore = calculateObstacleScore(vel, obstacles);
+            var velocityScore = calculateVelocityScore(vel);
+            
+            return goalScore + obstacleScore + velocityScore;
         }
         
         function checkJobProgress() {

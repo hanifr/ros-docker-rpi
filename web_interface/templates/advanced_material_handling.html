@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🚀 Advanced Material Handling System</title>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #007acc;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(45deg, #007acc, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+        }
+        
+        .mh-system {
+            display: grid;
+            grid-template-columns: 1fr 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .panel {
+            background: rgba(42, 42, 42, 0.95);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(64, 64, 64, 0.8);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel h3 {
+            color: #00d4ff;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            border-bottom: 2px solid rgba(0, 122, 204, 0.3);
+            padding-bottom: 0.5rem;
+        }
+
+        .panel h4 {
+            color: #00aa88;
+            margin: 1rem 0 0.5rem 0;
+            font-size: 1.1rem;
+        }
+        
+        .control-section {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border: 1px solid rgba(64, 64, 64, 0.6);
+        }
+        
+        .location-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .location-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #555;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #ffffff;
+        }
+        
+        .location-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .location-card.selected {
+            border-color: #007bff;
+            background: rgba(0, 123, 255, 0.2);
+        }
+        
+        .location-card.robot-here {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+        
+        .job-queue {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #555;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            color: #ffffff;
+        }
+        
+        .job-item {
+            background: rgba(0, 123, 255, 0.1);
+            border-left: 4px solid #007bff;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-size: 0.9rem;
+        }
+        
+        .job-item.active {
+            border-left-color: #ffc107;
+            background: rgba(255, 193, 7, 0.2);
+        }
+        
+        .job-item.completed {
+            border-left-color: #28a745;
+            background: rgba(40, 167, 69, 0.2);
+        }
+
+        select, input, button {
+            padding: 8px 12px;
+            margin: 4px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 0.9rem;
+        }
+
+        button {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+        }
+
+        .btn-primary { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); }
+        .btn-success { background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); }
+        .btn-warning { background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #000; }
+        .btn-danger { background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%); }
+
+        .control-mode-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin: 1rem 0;
+        }
+
+        .mode-button {
+            padding: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .mode-button.active {
+            background: linear-gradient(135deg, #00d4ff 0%, #007acc 100%);
+            color: #000;
+        }
+
+        .status-indicators {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 1rem 0;
+        }
+
+        .status-card {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #555;
+        }
+
+        .status-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00ff88;
+            font-family: monospace;
+        }
+
+        .system-log {
+            height: 180px;
+            overflow-y: auto;
+            border: 1px solid #555;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.75rem;
+            color: #00ff88;
+            line-height: 1.4;
+            border-radius: 6px;
+        }
+
+        .algorithm-params {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 0.8rem;
+        }
+
+        .param-row {
+            display: grid;
+            grid-template-columns: 1fr 80px;
+            gap: 5px;
+            margin: 5px 0;
+            align-items: center;
+        }
+
+        .param-input {
+            padding: 4px;
+            font-size: 0.8rem;
+            width: 70px;
+        }
+
+        @media (max-width: 1200px) {
+            .mh-system {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 
+    Add this navigation component to each of your existing HTML files
+    Insert this right after your opening <body> tag or existing header
+    -->
+
+    <nav id="interface-navigation" style="
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 2px solid #007acc;
+        padding: 0.75rem 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    ">
+        <!-- Logo/Title -->
+        <div style="
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #007acc, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: #007acc;
+        ">
+            🤖 ROS 2 Platform
+        </div>
+        
+        <!-- Navigation Links -->
+        <div id="nav-links" style="
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        ">
+            <a href="/" class="nav-link" data-interface="dashboard" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🏠 <span class="nav-text">Dashboard</span>
+            </a>
+            
+            <a href="/control" class="nav-link" data-interface="control" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🎮 <span class="nav-text">Control</span>
+            </a>
+            
+            <a href="/physics" class="nav-link" data-interface="physics" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                ⚙️ <span class="nav-text">Physics</span>
+            </a>
+            
+            <a href="/data" class="nav-link" data-interface="data" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📊 <span class="nav-text">Data</span>
+            </a>
+            
+            <a href="/quality" class="nav-link" data-interface="quality" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                🔬 <span class="nav-text">Quality</span>
+            </a>
+            
+            <a href="/material" class="nav-link" data-interface="material" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📦 <span class="nav-text">Material</span>
+            </a>
+            
+            <a href="/excel" class="nav-link" data-interface="excel" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(0, 122, 204, 0.2);
+                border: 1px solid rgba(0, 122, 204, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
+                📈 <span class="nav-text">Excel</span>
+            </a>
+            
+            <a href="/advanced" class="nav-link" data-interface="advanced" style="
+                padding: 0.5rem 0.8rem;
+                background: rgba(255, 165, 0, 0.2);
+                border: 1px solid rgba(255, 165, 0, 0.3);
+                border-radius: 5px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+                transition: all 0.2s ease;
+                white-space: nowrap;
+            " onmouseover="this.style.background='rgba(255, 165, 0, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 165, 0, 0.2)'; this.style.transform='translateY(0)'">
+                🚀 <span class="nav-text">Advanced</span>
+            </a>
+        </div>
+        
+        <!-- Status Indicator -->
+        <div id="nav-status" style="
+            padding: 0.3rem 0.6rem;
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 15px;
+            font-size: 0.75rem;
+            color: #90ee90;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        ">
+            🟢 <span id="nav-status-text">Online</span>
+        </div>
+    </nav>
+
+    <div class="header">
+        <h1>🚀 Advanced Material Handling System</h1>
+        <p style="margin: 0.5rem 0 0 0; color: #aaa;">Multi-Algorithm Robot Control Platform</p>
+    </div>
+    
+    <div class="mh-system">
+        <!-- Control Panel -->
+        <div class="panel">
+            <h3>🎮 System Control</h3>
+            
+            <div class="control-section">
+                <h4>🤖 Control Algorithm</h4>
+                <div class="control-mode-selector">
+                    <button class="mode-button active" onclick="setControlMode('proportional')">
+                        📐 Proportional
+                    </button>
+                    <button class="mode-button" onclick="setControlMode('pid')">
+                        🎯 PID Control
+                    </button>
+                    <button class="mode-button" onclick="setControlMode('pure_pursuit')">
+                        🏁 Pure Pursuit
+                    </button>
+                    <button class="mode-button" onclick="setControlMode('state_machine')">
+                        🔄 State Machine
+                    </button>
+                </div>
+                
+                <div id="algorithm-params" class="algorithm-params">
+                    <!-- Parameter controls will be populated here -->
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h4>📍 Facility Locations</h4>
+                <div class="location-grid">
+                    <div class="location-card" data-location="storage_a" onclick="selectLocation('storage_a')">
+                        <strong>🏪 Storage A</strong><br>
+                        (0.0, 2.0)<br>
+                        <span class="material-count">Items: 0</span>
+                    </div>
+                    <div class="location-card" data-location="storage_b" onclick="selectLocation('storage_b')">
+                        <strong>🏪 Storage B</strong><br>
+                        (2.0, 2.0)<br>
+                        <span class="material-count">Items: 0</span>
+                    </div>
+                    <div class="location-card" data-location="workstation" onclick="selectLocation('workstation')">
+                        <strong>🔧 Workstation</strong><br>
+                        (2.0, 0.0)<br>
+                        <span class="material-count">Items: 0</span>
+                    </div>
+                    <div class="location-card robot-here" data-location="home" onclick="selectLocation('home')">
+                        <strong>🏠 Home Base</strong><br>
+                        (0.0, 0.0)<br>
+                        <span class="robot-status">🤖 Robot Here</span>
+                    </div>
+                    <div class="location-card" data-location="loading" onclick="selectLocation('loading')">
+                        <strong>📦 Loading Dock</strong><br>
+                        (1.0, 0.0)<br>
+                        <span class="material-count">Items: 0</span>
+                    </div>
+                    <div class="location-card" data-location="inspection" onclick="selectLocation('inspection')">
+                        <strong>🔍 Inspection</strong><br>
+                        (1.0, 2.0)<br>
+                        <span class="material-count">Items: 0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h4>➕ Create Transport Job</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <select id="pickup-location">
+                        <option value="">📤 Select pickup</option>
+                        <option value="storage_a">🏪 Storage A</option>
+                        <option value="storage_b">🏪 Storage B</option>
+                        <option value="loading">📦 Loading Dock</option>
+                        <option value="inspection">🔍 Inspection</option>
+                    </select>
+                    <select id="dropoff-location">
+                        <option value="">📥 Select dropoff</option>
+                        <option value="storage_a">🏪 Storage A</option>
+                        <option value="storage_b">🏪 Storage B</option>
+                        <option value="workstation">🔧 Workstation</option>
+                        <option value="inspection">🔍 Inspection</option>
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 10px;">
+                    <input type="number" id="item-quantity" placeholder="Quantity" min="1" max="10" value="1">
+                    <button onclick="addTransportJob()" class="btn-success">➕ Add Job</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h4>🎛️ System Control</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                    <button onclick="startSystem()" class="btn-primary">▶️ Start</button>
+                    <button onclick="pauseSystem()" class="btn-warning">⏸️ Pause</button>
+                    <button onclick="stopSystem()" class="btn-danger">⏹️ Stop</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Panel -->
+        <div class="panel">
+            <h3>📊 System Status</h3>
+            
+            <div class="status-indicators">
+                <div class="status-card">
+                    <div>System State</div>
+                    <div id="system-state" class="status-value">IDLE</div>
+                </div>
+                <div class="status-card">
+                    <div>Control Mode</div>
+                    <div id="control-mode" class="status-value">PROPORTIONAL</div>
+                </div>
+                <div class="status-card">
+                    <div>Robot Position</div>
+                    <div id="robot-position" class="status-value">(0.00, 0.00)</div>
+                </div>
+                <div class="status-card">
+                    <div>Jobs Completed</div>
+                    <div id="jobs-completed" class="status-value">0</div>
+                </div>
+            </div>
+            
+            <h4>📋 Active Job</h4>
+            <div style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 6px; border: 1px solid #555;">
+                <div id="current-job" style="color: #ffffff;">None</div>
+            </div>
+            
+            <h4>⏳ Job Queue</h4>
+            <div class="job-queue" id="job-queue">
+                <!-- Jobs will be displayed here -->
+            </div>
+            
+            <h4>🎯 Control Performance</h4>
+            <div class="status-indicators">
+                <div class="status-card">
+                    <div>Distance Error</div>
+                    <div id="distance-error" class="status-value">0.00m</div>
+                </div>
+                <div class="status-card">
+                    <div>Heading Error</div>
+                    <div id="heading-error" class="status-value">0.0°</div>
+                </div>
+                <div class="status-card">
+                    <div>Linear Velocity</div>
+                    <div id="linear-velocity" class="status-value">0.00m/s</div>
+                </div>
+                <div class="status-card">
+                    <div>Angular Velocity</div>
+                    <div id="angular-velocity" class="status-value">0.0°/s</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Advanced Controls Panel -->
+        <div class="panel">
+            <h3>🚀 Advanced Controls</h3>
+            
+            <h4>🔧 Emergency Controls</h4>
+            <div style="display: grid; gap: 8px;">
+                <button onclick="emergencyStop()" class="btn-danger">🛑 Emergency Stop</button>
+                <button onclick="resetRobot()" class="btn-warning">🔄 Reset Robot</button>
+                <button onclick="clearJobs()" class="btn-warning">🗑️ Clear Queue</button>
+                <button onclick="returnHome()" class="btn-primary">🏠 Return Home</button>
+            </div>
+            
+            <h4>📈 System Performance</h4>
+            <div class="status-indicators">
+                <div class="status-card">
+                    <div>Update Rate</div>
+                    <div id="update-rate" class="status-value">10Hz</div>
+                </div>
+                <div class="status-card">
+                    <div>ROS Status</div>
+                    <div id="ros-status" class="status-value">CONNECTED</div>
+                </div>
+            </div>
+            
+            <h4>📝 System Log</h4>
+            <div class="system-log" id="system-log">
+                <!-- Log entries will appear here -->
+            </div>
+            
+            <h4>🎚️ Manual Control</h4>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 10px 0;">
+                <button onclick="manualMove('forward')" style="grid-column: 2;">⬆️</button>
+                <button onclick="manualMove('left')" style="grid-column: 1; grid-row: 2;">⬅️</button>
+                <button onclick="manualMove('stop')" style="grid-column: 2; grid-row: 2;">⏹️</button>
+                <button onclick="manualMove('right')" style="grid-column: 3; grid-row: 2;">➡️</button>
+                <button onclick="manualMove('backward')" style="grid-column: 2; grid-row: 3;">⬇️</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =============================================================================
+        // GLOBAL VARIABLES AND INITIALIZATION
+        // =============================================================================
+        
+        // ROS 2 connection
+        var ros = new ROSLIB.Ros({ url: 'ws://' + window.location.hostname + ':9090' });
+        // var ros = new ROSLIB.Ros({ url: 'ws://192.168.1.104:9090' });
+        var isConnected = false;
+        
+        // System state
+        var systemState = 'IDLE';  // IDLE, RUNNING, PAUSED
+        var jobQueue = [];
+        var currentJob = null;
+        var jobsCompleted = 0;
+        var robotPosition = { x: 0, y: 0 };
+        var robotOrientation = 0;
+        var robotVelocity = { linear: 0, angular: 0 };
+        
+        // Control system
+        var currentControlMode = 'proportional';
+        var navigationInterval = null;
+        var currentNavigationTarget = null;
+        
+        // Performance monitoring
+        var lastUpdateTime = Date.now();
+        var updateCount = 0;
+        var distanceError = 0;
+        var headingError = 0;
+        
+        // Location coordinates
+        var locations = {
+            'home': { x: 0.0, y: 0.0, name: 'Home Base' },
+            'storage_a': { x: 0.0, y: 2.0, name: 'Storage A' },
+            'storage_b': { x: 2.0, y: 2.0, name: 'Storage B' },
+            'workstation': { x: 2.0, y: 0.0, name: 'Workstation' },
+            'loading': { x: 1.0, y: 0.0, name: 'Loading Dock' },
+            'inspection': { x: 1.0, y: 2.0, name: 'Inspection' }
+        };
+        
+        // Material counts at each location
+        var materialCounts = {
+            'storage_a': 8,
+            'storage_b': 5,
+            'loading': 15,
+            'inspection': 3,
+            'workstation': 0,
+            'home': 0
+        };
+        
+        // =============================================================================
+        // ADVANCED CONTROL ALGORITHMS
+        // =============================================================================
+        
+        // Control Algorithm Parameters
+        var controlParams = {
+            proportional: {
+                kp_linear: 0.8,
+                kp_angular: 2.5,
+                max_linear: 0.6,
+                max_angular: 1.2
+            },
+            pid: {
+                kp_linear: 1.0, ki_linear: 0.15, kd_linear: 0.08,
+                kp_angular: 3.5, ki_angular: 0.25, kd_angular: 0.12,
+                max_linear: 0.7, max_angular: 1.5,
+                integral_limit: 1.0
+            },
+            pure_pursuit: {
+                lookahead_distance: 0.6,
+                max_linear: 0.65,
+                max_angular: 1.3,
+                kp_linear: 0.9
+            },
+            state_machine: {
+                arrival_tolerance: 0.18,
+                heading_tolerance: 0.2,
+                max_linear: 0.5,
+                max_angular: 1.0
+            }
+        };
+        
+        // PID Controller State
+        var pidState = {
+            prevLinearError: 0,
+            prevAngularError: 0,
+            linearErrorIntegral: 0,
+            angularErrorIntegral: 0,
+            dt: 0.1
+        };
+        
+        // Velocity Smoother
+        var velocitySmoother = {
+            currentLinear: 0,
+            currentAngular: 0,
+            maxLinearAccel: 0.8,
+            maxAngularAccel: 1.5,
+            dt: 0.1,
+            
+            smooth: function(targetLinear, targetAngular) {
+                var maxLinearChange = this.maxLinearAccel * this.dt;
+                var maxAngularChange = this.maxAngularAccel * this.dt;
+                
+                var linearChange = targetLinear - this.currentLinear;
+                var angularChange = targetAngular - this.currentAngular;
+                
+                linearChange = Math.max(Math.min(linearChange, maxLinearChange), -maxLinearChange);
+                angularChange = Math.max(Math.min(angularChange, maxAngularChange), -maxAngularChange);
+                
+                this.currentLinear += linearChange;
+                this.currentAngular += angularChange;
+                
+                return {
+                    linear: this.currentLinear,
+                    angular: this.currentAngular
+                };
+            }
+        };
+        
+        // Robot State Machine
+        var robotStateMachine = {
+            state: 'IDLE', // IDLE, NAVIGATING, PICKING, DROPPING, ERROR
+            targetLocation: null,
+            stateStartTime: 0,
+            
+            update: function() {
+                switch(this.state) {
+                    case 'IDLE':
+                        if (currentJob && systemState === 'RUNNING') {
+                            this.setState('NAVIGATING');
+                            this.targetLocation = (currentJob.stage === 'PICKUP') ? 
+                                                 currentJob.pickup : currentJob.dropoff;
+                            startNavigation(this.targetLocation);
+                        }
+                        break;
+                        
+                    case 'NAVIGATING':
+                        if (this.hasArrived()) {
+                            this.setState((currentJob.stage === 'PICKUP') ? 'PICKING' : 'DROPPING');
+                            stopNavigation();
+                            this.performAction();
+                        }
+                        break;
+                        
+                    case 'PICKING':
+                        if (Date.now() - this.stateStartTime > 2500) {
+                            materialCounts[currentJob.pickup] -= currentJob.quantity;
+                            updateMaterialCounts();
+                            currentJob.stage = 'TRANSPORT';
+                            this.setState('IDLE');
+                            logMessage('📦 Pickup completed');
+                        }
+                        break;
+                        
+                    case 'DROPPING':
+                        if (Date.now() - this.stateStartTime > 2500) {
+                            materialCounts[currentJob.dropoff] += currentJob.quantity;
+                            updateMaterialCounts();
+                            this.completeJob();
+                            this.setState('IDLE');
+                            logMessage('📦 Dropoff completed');
+                        }
+                        break;
+                        
+                    case 'ERROR':
+                        this.handleError();
+                        break;
+                }
+            },
+            
+            setState: function(newState) {
+                this.state = newState;
+                this.stateStartTime = Date.now();
+                logMessage(`🔄 State: ${newState}`);
+            },
+            
+            hasArrived: function() {
+                var target = locations[this.targetLocation];
+                var distance = Math.sqrt(
+                    Math.pow(robotPosition.x - target.x, 2) + 
+                    Math.pow(robotPosition.y - target.y, 2)
+                );
+                return distance < controlParams.state_machine.arrival_tolerance;
+            },
+            
+            performAction: function() {
+                stopRobot();
+                logMessage(`🤖 Performing ${this.state.toLowerCase()} operation...`);
+            },
+            
+            completeJob: function() {
+                jobsCompleted++;
+                document.getElementById('jobs-completed').textContent = jobsCompleted;
+                
+                logMessage(`✅ Job completed: ${currentJob.quantity} items moved from ${locations[currentJob.pickup].name} to ${locations[currentJob.dropoff].name}`);
+                
+                currentJob = null;
+                document.getElementById('current-job').textContent = 'None';
+                
+                setTimeout(() => {
+                    startNextJob();
+                }, 1000);
+            },
+            
+            handleError: function() {
+                stopRobot();
+                pauseSystem();
+                logMessage('❌ Error state - system paused');
+                this.setState('IDLE');
+            }
+        };
+        
+        // =============================================================================
+        // NAVIGATION CONTROL ALGORITHMS
+        // =============================================================================
+        
+        function startNavigation(locationId) {
+            if (navigationInterval) {
+                clearInterval(navigationInterval);
+            }
+            
+            currentNavigationTarget = locationId;
+            var target = locations[locationId];
+            logMessage(`🎯 Navigating to ${target.name} using ${currentControlMode.toUpperCase()} control`);
+            
+            // Reset PID state when starting new navigation
+            resetPIDState();
+            
+            navigationInterval = setInterval(function() {
+                if (systemState !== 'RUNNING' || !currentNavigationTarget) {
+                    stopNavigation();
+                    return;
+                }
+                
+                updateNavigationControl();
+            }, 100); // 10 Hz update rate
+        }
+        
+        function stopNavigation() {
+            if (navigationInterval) {
+                clearInterval(navigationInterval);
+                navigationInterval = null;
+            }
+            currentNavigationTarget = null;
+            stopRobot();
+        }
+        
+        function updateNavigationControl() {
+            var target = locations[currentNavigationTarget];
+            var dx = target.x - robotPosition.x;
+            var dy = target.y - robotPosition.y;
+            var distance = Math.sqrt(dx*dx + dy*dy);
+            
+            // Update performance metrics
+            distanceError = distance;
+            updatePerformanceDisplay();
+            
+            if (distance < 0.15) {
+                stopNavigation();
+                logMessage(`✅ Arrived at ${target.name}`);
+                return;
+            }
+            
+            var velocities;
+            
+            switch(currentControlMode) {
+                case 'proportional':
+                    velocities = calculateProportionalControl(target, distance, dx, dy);
+                    break;
+                case 'pid':
+                    velocities = calculatePIDControl(target, distance, dx, dy);
+                    break;
+                case 'pure_pursuit':
+                    velocities = calculatePurePursuitControl(target, distance, dx, dy);
+                    break;
+                case 'state_machine':
+                    velocities = calculateStateMachineControl(target, distance, dx, dy);
+                    break;
+                default:
+                    velocities = { linear: 0, angular: 0 };
+            }
+            
+            // Apply velocity smoothing
+            var smoothedVel = velocitySmoother.smooth(velocities.linear, velocities.angular);
+            
+            // Publish velocities
+            publishVelocity(smoothedVel.linear, smoothedVel.angular);
+        }
+        
+        function calculateProportionalControl(target, distance, dx, dy) {
+            var params = controlParams.proportional;
+            
+            var targetHeading = Math.atan2(dy, dx);
+            var headingError = normalizeAngle(targetHeading - robotOrientation);
+            
+            var linearVel = Math.min(params.kp_linear * distance, params.max_linear);
+            var angularVel = Math.max(Math.min(params.kp_angular * headingError, params.max_angular), -params.max_angular);
+            
+            // Store heading error for display
+            window.headingError = headingError * 180 / Math.PI;
+            
+            return { linear: linearVel, angular: angularVel };
+        }
+        
+        function calculatePIDControl(target, distance, dx, dy) {
+            var params = controlParams.pid;
+            
+            var targetHeading = Math.atan2(dy, dx);
+            var headingError = normalizeAngle(targetHeading - robotOrientation);
+            
+            // PID for linear velocity
+            pidState.linearErrorIntegral += distance * pidState.dt;
+            pidState.linearErrorIntegral = Math.max(Math.min(pidState.linearErrorIntegral, params.integral_limit), -params.integral_limit);
+            
+            var linearErrorDerivative = (distance - pidState.prevLinearError) / pidState.dt;
+            var linearVel = params.kp_linear * distance + 
+                           params.ki_linear * pidState.linearErrorIntegral + 
+                           params.kd_linear * linearErrorDerivative;
+            
+            // PID for angular velocity
+            pidState.angularErrorIntegral += headingError * pidState.dt;
+            pidState.angularErrorIntegral = Math.max(Math.min(pidState.angularErrorIntegral, params.integral_limit), -params.integral_limit);
+            
+            var angularErrorDerivative = (headingError - pidState.prevAngularError) / pidState.dt;
+            var angularVel = params.kp_angular * headingError + 
+                            params.ki_angular * pidState.angularErrorIntegral + 
+                            params.kd_angular * angularErrorDerivative;
+            
+            // Store previous errors
+            pidState.prevLinearError = distance;
+            pidState.prevAngularError = headingError;
+            
+            // Apply limits
+            linearVel = Math.max(Math.min(linearVel, params.max_linear), 0);
+            angularVel = Math.max(Math.min(angularVel, params.max_angular), -params.max_angular);
+            
+            // Store heading error for display
+            window.headingError = headingError * 180 / Math.PI;
+            
+            return { linear: linearVel, angular: angularVel };
+        }
+        
+        function calculatePurePursuitControl(target, distance, dx, dy) {
+            var params = controlParams.pure_pursuit;
+            
+            // Transform target to robot local frame
+            var cos_theta = Math.cos(robotOrientation);
+            var sin_theta = Math.sin(robotOrientation);
+            
+            var local_x = cos_theta * dx + sin_theta * dy;
+            var local_y = -sin_theta * dx + cos_theta * dy;
+            
+            // Calculate curvature using Pure Pursuit formula
+            var L = Math.min(params.lookahead_distance, distance);
+            var curvature = (L > 0.01) ? 2 * local_y / (L * L) : 0;
+            
+            // Calculate velocities
+            var linearVel = Math.min(params.kp_linear * distance, params.max_linear);
+            var angularVel = curvature * linearVel;
+            
+            // Limit angular velocity
+            angularVel = Math.max(Math.min(angularVel, params.max_angular), -params.max_angular);
+            
+            // Store heading error for display
+            window.headingError = Math.atan2(local_y, local_x) * 180 / Math.PI;
+            
+            return { linear: linearVel, angular: angularVel };
+        }
+        
+        function calculateStateMachineControl(target, distance, dx, dy) {
+            var params = controlParams.state_machine;
+            
+            var targetHeading = Math.atan2(dy, dx);
+            var headingError = normalizeAngle(targetHeading - robotOrientation);
+            
+            // State-based control
+            var linearVel = 0;
+            var angularVel = 0;
+            
+            if (Math.abs(headingError) > params.heading_tolerance) {
+                // First align heading
+                angularVel = Math.sign(headingError) * Math.min(Math.abs(headingError) * 2.0, params.max_angular);
+            } else {
+                // Then move forward
+                linearVel = Math.min(distance * 1.5, params.max_linear);
+                angularVel = headingError * 1.0; // Small correction
+            }
+            
+            // Store heading error for display
+            window.headingError = headingError * 180 / Math.PI;
+            
+            return { linear: linearVel, angular: angularVel };
+        }
+        
+        function resetPIDState() {
+            pidState.prevLinearError = 0;
+            pidState.prevAngularError = 0;
+            pidState.linearErrorIntegral = 0;
+            pidState.angularErrorIntegral = 0;
+        }
+        
+        function normalizeAngle(angle) {
+            while (angle > Math.PI) angle -= 2 * Math.PI;
+            while (angle < -Math.PI) angle += 2 * Math.PI;
+            return angle;
+        }
+        
+        function publishVelocity(linear, angular) {
+            if (!cmdVel || !isConnected) return;
+            
+            // Store current velocities for monitoring
+            robotVelocity.linear = linear;
+            robotVelocity.angular = angular;
+            
+            var twist = new ROSLIB.Message({
+                linear: { x: linear, y: 0, z: 0 },
+                angular: { x: 0, y: 0, z: angular }
+            });
+            cmdVel.publish(twist);
+        }
+        
+        // =============================================================================
+        // ROS 2 COMMUNICATION
+        // =============================================================================
+        
+        // ROS 2 topics
+        var cmdVel = new ROSLIB.Topic({
+            ros: ros,
+            name: '/cmd_vel',
+            messageType: 'geometry_msgs/Twist'
+        });
+        
+        var odomSubscriber = new ROSLIB.Topic({
+            ros: ros,
+            name: '/odom',
+            messageType: 'nav_msgs/Odometry'
+        });
+        
+        // ROS connection handling
+        ros.on('connection', function() {
+            isConnected = true;
+            document.getElementById('ros-status').textContent = 'CONNECTED';
+            document.getElementById('ros-status').style.color = '#00ff88';
+            logMessage('✅ Connected to ROS Bridge');
+        });
+        
+        ros.on('error', function(error) {
+            isConnected = false;
+            document.getElementById('ros-status').textContent = 'ERROR';
+            document.getElementById('ros-status').style.color = '#ff4444';
+            logMessage('❌ ROS Connection Error: ' + error);
+            
+            if (systemState === 'RUNNING') {
+                pauseSystem();
+                logMessage('⚠️ System auto-paused due to connection loss');
+            }
+        });
+        
+        ros.on('close', function() {
+            isConnected = false;
+            document.getElementById('ros-status').textContent = 'DISCONNECTED';
+            document.getElementById('ros-status').style.color = '#ffaa00';
+            logMessage('🔌 Disconnected from ROS Bridge');
+        });
+        
+        // Subscribe to robot odometry
+        odomSubscriber.subscribe(function(message) {
+            robotPosition.x = message.pose.pose.position.x;
+            robotPosition.y = message.pose.pose.position.y;
+            
+            // Extract robot orientation from quaternion
+            var orientation = message.pose.pose.orientation;
+            robotOrientation = Math.atan2(
+                2 * (orientation.w * orientation.z + orientation.x * orientation.y),
+                1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
+            );
+            
+            // Update display
+            document.getElementById('robot-position').textContent = 
+                `(${robotPosition.x.toFixed(2)}, ${robotPosition.y.toFixed(2)})`;
+                
+            updateRobotLocationIndicator();
+            
+            // Update performance counter
+            updateCount++;
+            var now = Date.now();
+            if (now - lastUpdateTime > 1000) {
+                document.getElementById('update-rate').textContent = `${updateCount}Hz`;
+                updateCount = 0;
+                lastUpdateTime = now;
+            }
+            
+            // Update state machine if using that mode
+            if (currentControlMode === 'state_machine') {
+                robotStateMachine.update();
+            } else if (currentJob && systemState === 'RUNNING') {
+                checkJobProgress();
+            }
+        });
+        
+        // =============================================================================
+        // USER INTERFACE FUNCTIONS
+        // =============================================================================
+        
+        function setControlMode(mode) {
+            currentControlMode = mode;
+            document.getElementById('control-mode').textContent = mode.toUpperCase();
+            
+            // Update mode buttons
+            document.querySelectorAll('.mode-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Reset navigation with new mode
+            if (navigationInterval) {
+                stopNavigation();
+                if (currentNavigationTarget) {
+                    setTimeout(() => {
+                        startNavigation(currentNavigationTarget);
+                    }, 100);
+                }
+            }
+            
+            // Update parameter display
+            updateParameterDisplay();
+            
+            logMessage(`🔧 Control mode changed to: ${mode.toUpperCase()}`);
+        }
+        
+        function updateParameterDisplay() {
+            var paramsDiv = document.getElementById('algorithm-params');
+            var params = controlParams[currentControlMode];
+            var html = '';
+            
+            switch(currentControlMode) {
+                case 'proportional':
+                    html = `
+                        <div class="param-row">
+                            <label>Linear Gain (Kp):</label>
+                            <input type="number" step="0.1" value="${params.kp_linear}" 
+                                   onchange="controlParams.proportional.kp_linear = parseFloat(this.value)" class="param-input">
+                        </div>
+                        <div class="param-row">
+                            <label>Angular Gain (Kp):</label>
+                            <input type="number" step="0.1" value="${params.kp_angular}" 
+                                   onchange="controlParams.proportional.kp_angular = parseFloat(this.value)" class="param-input">
+                        </div>
+                        <div class="param-row">
+                            <label>Max Linear Speed:</label>
+                            <input type="number" step="0.1" value="${params.max_linear}" 
+                                   onchange="controlParams.proportional.max_linear = parseFloat(this.value)" class="param-input">
+                        </div>
+                    `;
+                    break;
+                case 'pid':
+                    html = `
+                        <div class="param-row">
+                            <label>Linear Kp:</label>
+                            <input type="number" step="0.1" value="${params.kp_linear}" 
+                                   onchange="controlParams.pid.kp_linear = parseFloat(this.value)" class="param-input">
+                        </div>
+                        <div class="param-row">
+                            <label>Linear Ki:</label>
+                            <input type="number" step="0.01" value="${params.ki_linear}" 
+                                   onchange="controlParams.pid.ki_linear = parseFloat(this.value)" class="param-input">
+                        </div>
+                        <div class="param-row">
+                            <label>Angular Kp:</label>
+                            <input type="number" step="0.1" value="${params.kp_angular}" 
+                                   onchange="controlParams.pid.kp_angular = parseFloat(this.value)" class="param-input">
+                        </div>
+                    `;
+                    break;
+                case 'pure_pursuit':
+                    html = `
+                        <div class="param-row">
+                            <label>Lookahead Distance:</label>
+                            <input type="number" step="0.1" value="${params.lookahead_distance}" 
+                                   onchange="controlParams.pure_pursuit.lookahead_distance = parseFloat(this.value)" class="param-input">
+                        </div>
+                        <div class="param-row">
+                            <label>Linear Gain:</label>
+                            <input type="number" step="0.1" value="${params.kp_linear}" 
+                                   onchange="controlParams.pure_pursuit.kp_linear = parseFloat(this.value)" class="param-input">
+                        </div>
+                    `;
+                    break;
+                case 'state_machine':
+                    html = `
+                        <div class="param-row">
+                            <label>Arrival Tolerance:</label>
+                            <input type="number" step="0.05" value="${params.arrival_tolerance}" 
+                                   onchange="controlParams.state_machine.arrival_tolerance = parseFloat(this.value)" class="param-input">
+                        </div>
+                        <div class="param-row">
+                            <label>Heading Tolerance:</label>
+                            <input type="number" step="0.05" value="${params.heading_tolerance}" 
+                                   onchange="controlParams.state_machine.heading_tolerance = parseFloat(this.value)" class="param-input">
+                        </div>
+                    `;
+                    break;
+            }
+            
+            paramsDiv.innerHTML = html;
+        }
+        
+        function updatePerformanceDisplay() {
+            document.getElementById('distance-error').textContent = `${distanceError.toFixed(2)}m`;
+            document.getElementById('heading-error').textContent = `${(window.headingError || 0).toFixed(1)}°`;
+            document.getElementById('linear-velocity').textContent = `${robotVelocity.linear.toFixed(2)}m/s`;
+            document.getElementById('angular-velocity').textContent = `${(robotVelocity.angular * 180 / Math.PI).toFixed(1)}°/s`;
+        }
+        
+        function selectLocation(locationId) {
+            document.querySelectorAll('.location-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector(`[data-location="${locationId}"]`).classList.add('selected');
+            logMessage(`📍 Selected location: ${locations[locationId].name}`);
+        }
+        
+        function updateRobotLocationIndicator() {
+            document.querySelectorAll('.location-card').forEach(card => {
+                card.classList.remove('robot-here');
+                card.querySelector('.robot-status')?.remove();
+            });
+            
+            var closestLocation = null;
+            var minDistance = Infinity;
+            
+            Object.keys(locations).forEach(locId => {
+                var loc = locations[locId];
+                var distance = Math.sqrt(
+                    Math.pow(robotPosition.x - loc.x, 2) + 
+                    Math.pow(robotPosition.y - loc.y, 2)
+                );
+                
+                if (distance < minDistance && distance < 0.3) {
+                    minDistance = distance;
+                    closestLocation = locId;
+                }
+            });
+            
+            if (closestLocation) {
+                var card = document.querySelector(`[data-location="${closestLocation}"]`);
+                card.classList.add('robot-here');
+                
+                var statusSpan = document.createElement('span');
+                statusSpan.className = 'robot-status';
+                statusSpan.innerHTML = '🤖 Robot Here';
+                card.appendChild(statusSpan);
+            }
+        }
+        
+        function updateMaterialCounts() {
+            Object.keys(materialCounts).forEach(locId => {
+                var card = document.querySelector(`[data-location="${locId}"]`);
+                var countSpan = card.querySelector('.material-count');
+                if (countSpan) {
+                    countSpan.textContent = `Items: ${materialCounts[locId]}`;
+                }
+            });
+        }
+        
+        // =============================================================================
+        // JOB MANAGEMENT FUNCTIONS
+        // =============================================================================
+        
+        function addTransportJob() {
+            var pickup = document.getElementById('pickup-location').value;
+            var dropoff = document.getElementById('dropoff-location').value;
+            var quantity = parseInt(document.getElementById('item-quantity').value) || 1;
+            
+            if (!pickup || !dropoff) {
+                alert('Please select both pickup and dropoff locations');
+                return;
+            }
+            
+            if (pickup === dropoff) {
+                alert('Pickup and dropoff locations cannot be the same');
+                return;
+            }
+            
+            if (materialCounts[pickup] < quantity) {
+                alert(`Not enough items at ${locations[pickup].name}. Available: ${materialCounts[pickup]}`);
+                return;
+            }
+            
+            var job = {
+                id: Date.now(),
+                pickup: pickup,
+                dropoff: dropoff,
+                quantity: quantity,
+                status: 'QUEUED',
+                created: new Date().toLocaleTimeString()
+            };
+            
+            jobQueue.push(job);
+            updateJobQueueDisplay();
+            logMessage(`➕ Job added: Move ${quantity} items from ${locations[pickup].name} to ${locations[dropoff].name}`);
+            
+            // Reset form
+            document.getElementById('pickup-location').value = '';
+            document.getElementById('dropoff-location').value = '';
+            document.getElementById('item-quantity').value = '1';
+        }
+        
+        function startSystem() {
+            if (!isConnected) {
+                alert('Cannot start system - ROS Bridge not connected');
+                logMessage('❌ Start failed: ROS Bridge not connected');
+                return;
+            }
+            
+            if (jobQueue.length === 0) {
+                alert('No jobs in queue. Add some transport jobs first.');
+                return;
+            }
+            
+            systemState = 'RUNNING';
+            document.getElementById('system-state').textContent = 'RUNNING';
+            document.getElementById('system-state').style.color = '#00ff88';
+            logMessage('▶️ System started');
+            
+            if (!currentJob) {
+                startNextJob();
+            }
+        }
+        
+        function pauseSystem() {
+            systemState = 'PAUSED';
+            document.getElementById('system-state').textContent = 'PAUSED';
+            document.getElementById('system-state').style.color = '#ffaa00';
+            stopNavigation();
+            stopRobot();
+            logMessage('⏸️ System paused');
+        }
+        
+        function stopSystem() {
+            systemState = 'IDLE';
+            document.getElementById('system-state').textContent = 'IDLE';
+            document.getElementById('system-state').style.color = '#aaaaaa';
+            stopNavigation();
+            stopRobot();
+            
+            if (currentJob) {
+                currentJob.status = 'CANCELLED';
+                jobQueue.unshift(currentJob);
+                currentJob = null;
+            }
+            
+            document.getElementById('current-job').textContent = 'None';
+            updateJobQueueDisplay();
+            logMessage('⏹️ System stopped');
+        }
+        
+        function startNextJob() {
+            if (jobQueue.length === 0 || systemState !== 'RUNNING') {
+                return;
+            }
+            
+            currentJob = jobQueue.shift();
+            currentJob.status = 'ACTIVE';
+            currentJob.stage = 'PICKUP';
+            
+            document.getElementById('current-job').innerHTML = 
+                `<strong>Moving ${currentJob.quantity} items</strong><br>
+                 ${locations[currentJob.pickup].name} → ${locations[currentJob.dropoff].name}<br>
+                 <span style="color: #00ff88;">Stage: ${currentJob.stage}</span>`;
+                
+            updateJobQueueDisplay();
+            logMessage(`🚀 Starting job: Move ${currentJob.quantity} items from ${locations[currentJob.pickup].name} to ${locations[currentJob.dropoff].name}`);
+            
+            // Start navigation to pickup location
+            startNavigation(currentJob.pickup);
+        }
+        
+        function checkJobProgress() {
+            if (!currentJob || currentControlMode === 'state_machine') return;
+            
+            var targetLocation = (currentJob.stage === 'PICKUP') ? currentJob.pickup : currentJob.dropoff;
+            var target = locations[targetLocation];
+            
+            var distance = Math.sqrt(
+                Math.pow(robotPosition.x - target.x, 2) + 
+                Math.pow(robotPosition.y - target.y, 2)
+            );
+            
+            if (distance < 0.25 && (!currentJob.arrivedAt || currentJob.arrivedAt !== targetLocation)) {
+                currentJob.arrivedAt = targetLocation;
+                stopNavigation();
+                
+                if (currentJob.stage === 'PICKUP') {
+                    logMessage(`🔄 Arriving at ${locations[currentJob.pickup].name} for pickup...`);
+                    
+                    setTimeout(() => {
+                        logMessage(`📦 Picking up ${currentJob.quantity} items from ${locations[currentJob.pickup].name}`);
+                        materialCounts[currentJob.pickup] -= currentJob.quantity;
+                        updateMaterialCounts();
+                        
+                        currentJob.stage = 'TRANSPORT';
+                        delete currentJob.arrivedAt;
+                        
+                        document.getElementById('current-job').innerHTML = 
+                            `<strong>Moving ${currentJob.quantity} items</strong><br>
+                             ${locations[currentJob.pickup].name} → ${locations[currentJob.dropoff].name}<br>
+                             <span style="color: #00ff88;">Stage: ${currentJob.stage}</span>`;
+                        
+                        setTimeout(() => {
+                            logMessage('🚚 Pickup complete, moving to dropoff location');
+                            startNavigation(currentJob.dropoff);
+                        }, 1500);
+                    }, 1000);
+                    
+                } else if (currentJob.stage === 'TRANSPORT') {
+                    logMessage(`🔄 Arriving at ${locations[currentJob.dropoff].name} for dropoff...`);
+                    
+                    setTimeout(() => {
+                        logMessage(`📦 Dropping off ${currentJob.quantity} items at ${locations[currentJob.dropoff].name}`);
+                        materialCounts[currentJob.dropoff] += currentJob.quantity;
+                        updateMaterialCounts();
+                        
+                        currentJob.status = 'COMPLETED';
+                        jobsCompleted++;
+                        document.getElementById('jobs-completed').textContent = jobsCompleted;
+                        
+                        logMessage(`✅ Job completed: ${currentJob.quantity} items moved from ${locations[currentJob.pickup].name} to ${locations[currentJob.dropoff].name}`);
+                        
+                        currentJob = null;
+                        document.getElementById('current-job').textContent = 'None';
+                        
+                        setTimeout(() => {
+                            startNextJob();
+                        }, 2000);
+                    }, 1000);
+                }
+            }
+        }
+        
+        function updateJobQueueDisplay() {
+            var queueDiv = document.getElementById('job-queue');
+            queueDiv.innerHTML = '';
+            
+            if (currentJob) {
+                var jobDiv = document.createElement('div');
+                jobDiv.className = 'job-item active';
+                jobDiv.innerHTML = `
+                    <strong>🔥 ACTIVE:</strong> Move ${currentJob.quantity} items<br>
+                    ${locations[currentJob.pickup].name} → ${locations[currentJob.dropoff].name}<br>
+                    Stage: ${currentJob.stage || 'PICKUP'}
+                `;
+                queueDiv.appendChild(jobDiv);
+            }
+            
+            jobQueue.forEach(function(job, index) {
+                var jobDiv = document.createElement('div');
+                jobDiv.className = 'job-item';
+                jobDiv.innerHTML = `
+                    <strong>Job ${index + 1}:</strong> Move ${job.quantity} items<br>
+                    ${locations[job.pickup].name} → ${locations[job.dropoff].name}<br>
+                    <small>Created: ${job.created}</small>
+                `;
+                queueDiv.appendChild(jobDiv);
+            });
+            
+            if (!currentJob && jobQueue.length === 0) {
+                queueDiv.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No jobs in queue</p>';
+            }
+        }
+        
+        // =============================================================================
+        // UTILITY AND MANUAL CONTROL FUNCTIONS
+        // =============================================================================
+        
+        function stopRobot() {
+            if (!cmdVel || !isConnected) return;
+            
+            var twist = new ROSLIB.Message({
+                linear: { x: 0, y: 0, z: 0 },
+                angular: { x: 0, y: 0, z: 0 }
+            });
+            cmdVel.publish(twist);
+            
+            // Reset velocity smoother
+            velocitySmoother.currentLinear = 0;
+            velocitySmoother.currentAngular = 0;
+            robotVelocity.linear = 0;
+            robotVelocity.angular = 0;
+        }
+        
+        function emergencyStop() {
+            stopSystem();
+            stopRobot();
+            logMessage('🛑 EMERGENCY STOP ACTIVATED');
+        }
+        
+        function resetRobot() {
+            stopNavigation();
+            stopRobot();
+            resetPIDState();
+            
+            // Reset velocity smoother
+            velocitySmoother.currentLinear = 0;
+            velocitySmoother.currentAngular = 0;
+            
+            logMessage('🔄 Robot reset completed');
+        }
+        
+        function clearJobs() {
+            if (systemState === 'RUNNING') {
+                if (!confirm('System is running. Stop and clear all jobs?')) {
+                    return;
+                }
+                stopSystem();
+            }
+            
+            jobQueue = [];
+            currentJob = null;
+            document.getElementById('current-job').textContent = 'None';
+            updateJobQueueDisplay();
+            logMessage('🗑️ Job queue cleared');
+        }
+        
+        function returnHome() {
+            if (systemState === 'RUNNING') {
+                pauseSystem();
+            }
+            
+            stopNavigation();
+            logMessage('🏠 Returning to home base...');
+            startNavigation('home');
+        }
+        
+        function manualMove(direction) {
+            if (systemState === 'RUNNING') {
+                logMessage('⚠️ Cannot use manual control while system is running');
+                return;
+            }
+            
+            if (!isConnected) {
+                logMessage('❌ Cannot move - not connected to ROS');
+                return;
+            }
+            
+            var twist = new ROSLIB.Message({
+                linear: { x: 0, y: 0, z: 0 },
+                angular: { x: 0, y: 0, z: 0 }
+            });
+            
+            switch(direction) {
+                case 'forward':
+                    twist.linear.x = 0.3;
+                    break;
+                case 'backward':
+                    twist.linear.x = -0.3;
+                    break;
+                case 'left':
+                    twist.angular.z = 0.5;
+                    break;
+                case 'right':
+                    twist.angular.z = -0.5;
+                    break;
+                case 'stop':
+                    break;
+            }
+            
+            cmdVel.publish(twist);
+            logMessage(`🎮 Manual control: ${direction}`);
+        }
+        
+        function logMessage(message) {
+            var timestamp = new Date().toLocaleTimeString();
+            var logDiv = document.getElementById('system-log');
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            // Keep log size manageable
+            var lines = logDiv.textContent.split('\n');
+            if (lines.length > 100) {
+                logDiv.textContent = lines.slice(-80).join('\n');
+            }
+        }
+        
+        // =============================================================================
+        // INITIALIZATION
+        // =============================================================================
+        
+        // Initialize display
+        window.addEventListener('load', function() {
+            updateMaterialCounts();
+            updateJobQueueDisplay();
+            updateParameterDisplay();
+            logMessage('🚀 Advanced Material Handling System initialized');
+            logMessage('📡 Connecting to ROS Bridge...');
+        });
+        
+        // Update performance display every 500ms
+        setInterval(() => {
+            updatePerformanceDisplay();
+        }, 500);
+    </script>
+</body>
+</html>

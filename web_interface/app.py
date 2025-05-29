@@ -43,7 +43,7 @@ def quality_control():
     return render_template('quality_control.html')
 
 @app.route('/material')
-@app.route('/material_handling.html')
+@app.route('/advanced_material_handling.html')
 def material_handling():
     """Material handling system interface"""
     return render_template('material_handling.html')
