@@ -499,7 +499,7 @@
     <script>
         // Connect to physics simulation
         var ros = new ROSLIB.Ros({
-            url: 'ws://192.168.1.100:9090'  // Replace with your Pi IP
+            url: 'ws://' + window.location.hostname + ':9090'  // Replace with your Pi IP
         });
         
         // Current physics parameters

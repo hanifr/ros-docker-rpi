@@ -405,7 +405,7 @@ Insert this right after your opening <body> tag or existing header
 <script>
     // Connect directly to your Gazebo simulation via ROSBridge
     var ros = new ROSLIB.Ros({
-        url: 'ws://192.168.1.100:9090'  // Replace with your Pi IP address
+        url: 'ws://' + window.location.hostname + ':9090'  // Replace with your Pi IP address
     });
 
     // Physics simulation variables

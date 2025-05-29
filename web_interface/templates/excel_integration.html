@@ -431,7 +431,7 @@
 
     <script>
         // ROS 2 connection
-        var ros = new ROSLIB.Ros({ url: 'ws://[raspberry-pi-ip]:9090' });
+        var ros = new ROSLIB.Ros({ url: 'ws://' + window.location.hostname + ':9090' });
         
         // Data collection variables
         var collectingData = false;
