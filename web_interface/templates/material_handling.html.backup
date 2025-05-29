@@ -474,31 +474,6 @@
     <script>
         // ROS 2 connection
         var ros = new ROSLIB.Ros({ url: 'ws://' + window.location.hostname + ':9090' });
-        var isConnected = false;
-
-        ros.on('connection', function() {
-            isConnected = true;
-            logMessage('✅ Connected to ROS Bridge');
-            document.getElementById('system-state').style.color = '#28a745';
-        });
-
-        ros.on('error', function(error) {
-            isConnected = false;
-            logMessage('❌ ROS Connection Error: ' + error);
-            document.getElementById('system-state').style.color = '#dc3545';
-            
-            // Auto-pause system on connection loss
-            if (systemState === 'RUNNING') {
-                pauseSystem();
-                logMessage('⚠️ System auto-paused due to connection loss');
-            }
-        });
-
-        ros.on('close', function() {
-            isConnected = false;
-            logMessage('🔌 Disconnected from ROS Bridge');
-            document.getElementById('system-state').style.color = '#dc3545';
-        });
         
         // System state
         var systemState = 'IDLE';  // IDLE, RUNNING, PAUSED
@@ -541,23 +516,16 @@
         });
         
         // Subscribe to robot position
-        var robotOrientation = 0; // Add this global variable
         odomSubscriber.subscribe(function(message) {
             robotPosition.x = message.pose.pose.position.x;
             robotPosition.y = message.pose.pose.position.y;
             
-            // ✅ CORRECT: Extract robot orientation from quaternion
-            var orientation = message.pose.pose.orientation;
-            robotOrientation = Math.atan2(
-                2 * (orientation.w * orientation.z + orientation.x * orientation.y),
-                1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
-            );
-            
             document.getElementById('robot-position').textContent = 
-                `(${robotPosition.x.toFixed(2)}, ${robotPosition.y.toFixed(2)}) θ:${(robotOrientation * 180 / Math.PI).toFixed(1)}°`;
+                `(${robotPosition.x.toFixed(2)}, ${robotPosition.y.toFixed(2)})`;
                 
             updateRobotLocationIndicator();
             
+            // Check if robot reached destination during job execution
             if (currentJob && systemState === 'RUNNING') {
                 checkJobProgress();
             }
@@ -656,12 +624,6 @@
         }
         
         function startSystem() {
-            if (!isConnected) {
-                alert('Cannot start system - ROS Bridge not connected');
-                logMessage('❌ Start failed: ROS Bridge not connected');
-                return;
-            }
-            
             if (jobQueue.length === 0) {
                 alert('No jobs in queue. Add some transport jobs first.');
                 return;
@@ -669,8 +631,7 @@
             
             systemState = 'RUNNING';
             document.getElementById('system-state').textContent = 'RUNNING';
-            document.getElementById('system-state').style.color = '#28a745';
-            logMessage('✅ System started');
+            logMessage('System started');
             
             if (!currentJob) {
                 startNextJob();
@@ -723,6 +684,7 @@
             var target = locations[locationId];
             logMessage(`Navigating to ${target.name} at (${target.x}, ${target.y})`);
             
+            // Simple navigation - move toward target
             var navigationInterval = setInterval(function() {
                 if (systemState !== 'RUNNING') {
                     clearInterval(navigationInterval);
@@ -740,32 +702,21 @@
                     return;
                 }
                 
-                // ✅ CORRECT: Proper differential drive control
-                var targetHeading = Math.atan2(dy, dx);
-                var currentHeading = robotOrientation || 0; // Need to track this from odometry
-                
-                // Normalize heading error to [-π, π]
-                var headingError = targetHeading - currentHeading;
-                while (headingError > Math.PI) headingError -= 2 * Math.PI;
-                while (headingError < -Math.PI) headingError += 2 * Math.PI;
-                
-                // Control gains
-                var kp_linear = 0.5;
-                var kp_angular = 2.0;
-                
-                // Calculate velocities
-                var linearVel = Math.min(kp_linear * distance, 0.5);
-                var angularVel = kp_angular * headingError;
-                
-                // Limit angular velocity
-                angularVel = Math.max(Math.min(angularVel, 1.0), -1.0);
-                
+                var speed = Math.min(0.5, distance);
                 var twist = new ROSLIB.Message({
-                    linear: { x: linearVel, y: 0, z: 0 },
-                    angular: { x: 0, y: 0, z: angularVel }
+                    linear: { 
+                        x: Math.sign(dx) * speed * Math.abs(dx) / distance, 
+                        y: 0, 
+                        z: 0 
+                    },
+                    angular: { 
+                        x: 0, 
+                        y: 0, 
+                        z: Math.sign(dy) * speed * Math.abs(dy) / distance * 0.5
+                    }
                 });
                 cmdVel.publish(twist);
-            }, 100); // Faster update rate
+            }, 200);
         }
         
         function checkJobProgress() {
@@ -779,50 +730,36 @@
                 Math.pow(robotPosition.y - target.y, 2)
             );
             
-            // ✅ Better tolerance and add velocity check
-            if (distance < 0.3 && (!currentJob.arrivedAt || currentJob.arrivedAt !== targetLocation)) {
-                currentJob.arrivedAt = targetLocation; // Prevent multiple triggers
-                stopRobot(); // Ensure robot stops
-                
+            if (distance < 0.2) {
                 if (currentJob.stage === 'PICKUP') {
-                    logMessage(`🔄 Arriving at ${locations[currentJob.pickup].name} for pickup...`);
+                    // Simulate pickup
+                    logMessage(`Picking up ${currentJob.quantity} items from ${locations[currentJob.pickup].name}`);
+                    materialCounts[currentJob.pickup] -= currentJob.quantity;
+                    updateMaterialCounts();
                     
-                    // ✅ Simulate pickup with proper delay and feedback
+                    currentJob.stage = 'TRANSPORT';
                     setTimeout(() => {
-                        logMessage(`📦 Picking up ${currentJob.quantity} items from ${locations[currentJob.pickup].name}`);
-                        materialCounts[currentJob.pickup] -= currentJob.quantity;
-                        updateMaterialCounts();
-                        
-                        currentJob.stage = 'TRANSPORT';
-                        delete currentJob.arrivedAt; // Reset for next location
-                        
-                        setTimeout(() => {
-                            logMessage('🚚 Pickup complete, moving to dropoff location');
-                            navigateToLocation(currentJob.dropoff);
-                        }, 1500);
-                    }, 1000);
+                        logMessage('Pickup complete, moving to dropoff location');
+                        navigateToLocation(currentJob.dropoff);
+                    }, 2000);
                     
                 } else if (currentJob.stage === 'TRANSPORT') {
-                    logMessage(`🔄 Arriving at ${locations[currentJob.dropoff].name} for dropoff...`);
+                    // Simulate dropoff
+                    logMessage(`Dropping off ${currentJob.quantity} items at ${locations[currentJob.dropoff].name}`);
+                    materialCounts[currentJob.dropoff] += currentJob.quantity;
+                    updateMaterialCounts();
                     
-                    // ✅ Simulate dropoff with proper delay and feedback  
+                    currentJob.status = 'COMPLETED';
+                    jobsCompleted++;
+                    document.getElementById('jobs-completed').textContent = jobsCompleted;
+                    
+                    logMessage(`Job completed: ${currentJob.quantity} items moved from ${locations[currentJob.pickup].name} to ${locations[currentJob.dropoff].name}`);
+                    
+                    currentJob = null;
+                    document.getElementById('current-job').textContent = 'None';
+                    
                     setTimeout(() => {
-                        logMessage(`📦 Dropping off ${currentJob.quantity} items at ${locations[currentJob.dropoff].name}`);
-                        materialCounts[currentJob.dropoff] += currentJob.quantity;
-                        updateMaterialCounts();
-                        
-                        currentJob.status = 'COMPLETED';
-                        jobsCompleted++;
-                        document.getElementById('jobs-completed').textContent = jobsCompleted;
-                        
-                        logMessage(`✅ Job completed: ${currentJob.quantity} items moved from ${locations[currentJob.pickup].name} to ${locations[currentJob.dropoff].name}`);
-                        
-                        currentJob = null;
-                        document.getElementById('current-job').textContent = 'None';
-                        
-                        setTimeout(() => {
-                            startNextJob();
-                        }, 2000);
+                        startNextJob();
                     }, 1000);
                 }
             }
