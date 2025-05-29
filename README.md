@@ -66,7 +66,7 @@ launcher
 
 ### Custom Dockerfile for ARM64
 ```dockerfile
-# Dockerfile.arm64 - MINIMAL WORKING - Only packages that definitely exist for ARM64
+# Dockerfile.arm64 - FINAL VERSION with ros3djs support
 FROM ros:humble-ros-base
 
 # Use bash for all RUN commands
@@ -107,16 +107,18 @@ RUN echo "=== CHECKING AVAILABLE ROS 2 PACKAGES ===" && \
     apt-cache search ros-humble | grep -E "(robot|tf2|rosbridge)" | head -10 && \
     echo "=== END PACKAGE CHECK ==="
 
-# Install ONLY packages that definitely exist for ARM64
-RUN apt-get update && apt-get install -y \
+# Install core ROS packages that definitely exist for ARM64
+RUN echo "=== INSTALLING CORE ROS PACKAGES ===" && \
+    apt-get update && apt-get install -y \
     ros-humble-robot-state-publisher \
     ros-humble-joint-state-publisher \
     ros-humble-tf2-ros \
     ros-humble-tf2-tools \
     ros-humble-xacro \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* && \
+    echo "✅ Core ROS packages installed"
 
-# Try to install ROSBridge (check if available)
+# Install ROSBridge (check if available)
 RUN echo "=== INSTALLING ROSBRIDGE ===" && \
     apt-get update && \
     if apt-cache show ros-humble-rosbridge-server >/dev/null 2>&1; then \
@@ -128,15 +130,41 @@ RUN echo "=== INSTALLING ROSBRIDGE ===" && \
     fi && \
     rm -rf /var/lib/apt/lists/*
 
-# Try to install other useful packages (graceful failure)
-RUN echo "=== INSTALLING OPTIONAL PACKAGES ===" && \
+# Install message packages (graceful failure)
+RUN echo "=== INSTALLING MESSAGE PACKAGES ===" && \
     apt-get update && \
     (apt-get install -y ros-humble-geometry-msgs || echo "geometry-msgs not available") && \
     (apt-get install -y ros-humble-std-msgs || echo "std-msgs not available") && \
     (apt-get install -y ros-humble-sensor-msgs || echo "sensor-msgs not available") && \
     (apt-get install -y ros-humble-nav-msgs || echo "nav-msgs not available") && \
     rm -rf /var/lib/apt/lists/* && \
-    echo "=== OPTIONAL PACKAGES COMPLETE ==="
+    echo "=== MESSAGE PACKAGES COMPLETE ==="
+
+# Install ros3djs dependencies (check availability for ARM64)
+RUN echo "=== INSTALLING ROS3DJS DEPENDENCIES ===" && \
+    apt-get update && \
+    # TF2 Web Republisher (essential for ros3djs)
+    (apt-get install -y ros-humble-tf2-web-republisher || echo "tf2-web-republisher not available") && \
+    # URDF and mesh support (avoid duplicates)
+    (apt-get install -y ros-humble-urdf || echo "urdf already installed or not available") && \
+    (apt-get install -y ros-humble-urdf-parser-plugin || echo "urdf-parser-plugin not available") && \
+    # Interactive markers support
+    (apt-get install -y ros-humble-interactive-markers || echo "interactive-markers not available") && \
+    # Additional visualization packages (check availability)
+    (apt-get install -y ros-humble-rviz-common || echo "rviz-common not available") && \
+    (apt-get install -y ros-humble-rviz-default-plugins || echo "rviz-default-plugins not available") && \
+    # Joint state publisher GUI (avoid duplicate)
+    (apt-get install -y ros-humble-joint-state-publisher-gui || echo "joint-state-publisher-gui not available") && \
+    rm -rf /var/lib/apt/lists/* && \
+    echo "✅ ros3djs dependencies installation complete"
+
+# Install Python packages for enhanced web interface
+RUN echo "=== INSTALLING PYTHON WEB PACKAGES ===" && \
+    pip3 install \
+    flask-socketio \
+    python-socketio \
+    eventlet \
+    && echo "✅ Python web packages installed"
 
 # Initialize rosdep
 RUN rosdep update
@@ -149,6 +177,8 @@ RUN echo "=== FINAL PACKAGE CHECK ===" && \
     ros2 pkg list | grep -E "(robot_state|tf2|rosbridge)" && \
     echo "Message packages:" && \
     ros2 pkg list | grep -E "(geometry_msgs|std_msgs|sensor_msgs)" && \
+    echo "Visualization packages:" && \
+    ros2 pkg list | grep -E "(rviz|interactive)" && \
     echo "=== PACKAGE CHECK COMPLETE ==="
 
 # Create directories
@@ -162,16 +192,17 @@ RUN echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && \
 # Create working entrypoint
 RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo 'set -e' >> /entrypoint.sh && \
-    echo 'echo "🚀 Starting minimal ROS 2 container..."' >> /entrypoint.sh && \
+    echo 'echo "🚀 Starting ROS 2 container with ros3djs support..."' >> /entrypoint.sh && \
     echo 'source /opt/ros/humble/setup.bash' >> /entrypoint.sh && \
     echo 'if [ -f /workspace/install/setup.bash ]; then source /workspace/install/setup.bash; fi' >> /entrypoint.sh && \
     echo 'echo "✅ ROS 2 ready - $(ros2 pkg list | wc -l) packages available"' >> /entrypoint.sh && \
     echo 'exec "$@"' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
-# Create a ROSBridge launcher script (works with or without ros-humble-rosbridge-server)
+# Create ROSBridge launcher script
 RUN echo '#!/bin/bash' > /start_rosbridge.sh && \
     echo 'source /opt/ros/humble/setup.bash' >> /start_rosbridge.sh && \
+    echo 'if [ -f /workspace/install/setup.bash ]; then source /workspace/install/setup.bash; fi' >> /start_rosbridge.sh && \
     echo 'if ros2 pkg list | grep -q rosbridge_server; then' >> /start_rosbridge.sh && \
     echo '    echo "✅ Using ROS 2 ROSBridge package"' >> /start_rosbridge.sh && \
     echo '    ros2 launch rosbridge_server rosbridge_websocket_launch.xml port:=9090' >> /start_rosbridge.sh && \
@@ -191,23 +222,50 @@ RUN echo '#!/bin/bash' > /start_rosbridge.sh && \
     echo 'fi' >> /start_rosbridge.sh && \
     chmod +x /start_rosbridge.sh
 
+# Create TF2 Web Republisher launcher script
+RUN echo '#!/bin/bash' > /start_tf2_web.sh && \
+    echo 'source /opt/ros/humble/setup.bash' >> /start_tf2_web.sh && \
+    echo 'if [ -f /workspace/install/setup.bash ]; then source /workspace/install/setup.bash; fi' >> /start_tf2_web.sh && \
+    echo 'echo "🌐 Starting TF2 Web Republisher..."' >> /start_tf2_web.sh && \
+    echo 'if ros2 pkg list | grep -q tf2_web_republisher; then' >> /start_tf2_web.sh && \
+    echo '    echo "✅ Using TF2 Web Republisher package"' >> /start_tf2_web.sh && \
+    echo '    ros2 run tf2_web_republisher tf2_web_republisher --ros-args -p port:=9091' >> /start_tf2_web.sh && \
+    echo 'else' >> /start_tf2_web.sh && \
+    echo '    echo "⚠️ TF2 Web Republisher not available, starting placeholder..."' >> /start_tf2_web.sh && \
+    echo '    python3 -c "' >> /start_tf2_web.sh && \
+    echo 'import socket' >> /start_tf2_web.sh && \
+    echo 'import time' >> /start_tf2_web.sh && \
+    echo 'print(\"🔄 TF2 Web Republisher placeholder on port 9091\")' >> /start_tf2_web.sh && \
+    echo 'sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)' >> /start_tf2_web.sh && \
+    echo 'sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)' >> /start_tf2_web.sh && \
+    echo 'sock.bind((\"0.0.0.0\", 9091))' >> /start_tf2_web.sh && \
+    echo 'sock.listen(1)' >> /start_tf2_web.sh && \
+    echo 'print(\"✅ TF2 placeholder listening on 0.0.0.0:9091\")' >> /start_tf2_web.sh && \
+    echo 'while True: time.sleep(1)' >> /start_tf2_web.sh && \
+    echo '"' >> /start_tf2_web.sh && \
+    echo 'fi' >> /start_tf2_web.sh && \
+    chmod +x /start_tf2_web.sh
+
 # Create test script
 RUN echo '#!/bin/bash' > /test_minimal.sh && \
-    echo 'echo "=== MINIMAL ROS 2 TEST ==="' >> /test_minimal.sh && \
+    echo 'echo "=== ROS 2 + ros3djs TEST ==="' >> /test_minimal.sh && \
     echo 'source /opt/ros/humble/setup.bash' >> /test_minimal.sh && \
     echo 'echo "ROS_DISTRO: $ROS_DISTRO"' >> /test_minimal.sh && \
     echo 'echo "Total packages: $(ros2 pkg list | wc -l)"' >> /test_minimal.sh && \
     echo 'echo "Available message types:"' >> /test_minimal.sh && \
     echo 'ros2 interface list | grep -E "(geometry_msgs|std_msgs)" | head -5 || echo "Message types may be limited"' >> /test_minimal.sh && \
-    echo 'echo "✅ Minimal ROS 2 test complete!"' >> /test_minimal.sh && \
+    echo 'echo "TF2 Web Republisher available: $(ros2 pkg list | grep tf2_web_republisher | wc -l)"' >> /test_minimal.sh && \
+    echo 'echo "ROSBridge available: $(ros2 pkg list | grep rosbridge | wc -l)"' >> /test_minimal.sh && \
+    echo 'echo "✅ ROS 2 + ros3djs test complete!"' >> /test_minimal.sh && \
     chmod +x /test_minimal.sh
 
-# Final verification - make sure everything works
+# Final verification
 RUN source /opt/ros/humble/setup.bash && \
-    echo "✅ Minimal build complete - $(ros2 pkg list | wc -l) ROS 2 packages ready!"
+    echo "✅ Build complete - $(ros2 pkg list | wc -l) ROS 2 packages ready!" && \
+    echo "📦 Scripts created: $(ls -la /*.sh | wc -l)"
 
 # Expose ports
-EXPOSE 11345 9090
+EXPOSE 11345 9090 9091
 
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
@@ -216,7 +274,7 @@ CMD ["/test_minimal.sh"]
 
 ### Pi-Optimized Docker Compose
 ```yaml
-# docker-compose.pi.yml - SIMPLIFIED VERSION - No complex YAML escaping
+# docker-compose.pi.yml - SIMPLE VERSION with Robot Loading
 version: '3.8'
 
 services:
@@ -241,6 +299,8 @@ services:
       # ROS 2 Performance Tuning
       - RCUTILS_LOGGING_BUFFERED_STREAM=1
       - RCUTILS_COLORIZED_OUTPUT=0
+      # Robot Configuration - ADD THESE
+      - ROBOT_URDF_PATH=/workspace/src/my_robot_description/urdf/robot.urdf
     volumes:
       # Use ros2_ws for ROS 2
       - ./ros2_ws:/workspace
@@ -267,14 +327,46 @@ services:
         reservations:
           memory: 1G
           cpus: '1.0'
-    # FIXED: Simple command referencing external script
-    command: ["/scripts/start_gazebo_sim.sh"]
+    # SIMPLE COMMAND - just call script
+    command: ["/scripts/start_robot_system.sh"]
     healthcheck:
-      test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 topic list"]
+      test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 topic list | grep -E '(cmd_vel|odom)'"]
       interval: 30s
       timeout: 15s
       retries: 3
       start_period: 90s
+
+  tf2-web-republisher:
+    build:
+      context: .
+      dockerfile: Dockerfile.arm64
+    container_name: tf2-web-pub
+    restart: unless-stopped
+    depends_on:
+      - gazebo-sim
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./ros2_ws:/workspace
+      - ./scripts:/scripts
+      # ADD: Share built workspace from gazebo-sim
+      - workspace_build:/workspace/build
+      - workspace_install:/workspace/install
+      - workspace_log:/workspace/log
+    ports:
+      - "9091:9091"    # TF2 Web Republisher
+    networks:
+      - gazebo-pi-network
+    # SIMPLE COMMAND - just call script
+    command: ["/scripts/start_tf2_web.sh"]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "source /opt/ros/humble/setup.bash && ros2 node list | grep tf2_web"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
 
   web-interface:
     build:
@@ -286,10 +378,13 @@ services:
       - "5000:5000"    # Flask web interface
     depends_on:
       - gazebo-sim
+      - tf2-web-republisher
     environment:
       - ROS_BRIDGE_URL=ws://gazebo-sim:9090
+      - TF2_WEB_URL=ws://tf2-web-pub:9091
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
+      - ROBOT_NAME=differential_drive_robot
     volumes:
       - ./web_interface:/app
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -307,7 +402,7 @@ services:
   monitor:
     build:
       context: .
-      dockerfile: Dockerfile.monitor
+      dockerfile: Dockerfile.arm64
     container_name: pi-monitor
     restart: unless-stopped
     ports:
@@ -316,12 +411,14 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./scripts:/scripts
     environment:
       - PYTHONUNBUFFERED=1
     networks:
       - gazebo-pi-network
     profiles:
       - monitoring  # Only start with: docker-compose --profile monitoring up
+    command: ["/scripts/start_monitor.sh"]
 
 networks:
   gazebo-pi-network:
@@ -376,21 +473,6 @@ while true; do
 done
 ```
 
-```
-What Gets Created Automatically?
-✅ Created by pi_setup.sh:
-
-scripts/monitor_pi_resources.sh
-Various system configurations
-Docker configurations
-
-✅ Created by start_web_interface.sh:
-
-web_interface/ directory
-web_interface/app.py - Flask web application
-web_interface/templates/ directory
-web_interface/templates/index.html - Web interface
-```
 
 Steps
 # Check the file structure

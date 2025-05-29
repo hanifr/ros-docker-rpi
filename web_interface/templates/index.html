@@ -269,6 +269,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.89.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/eventemitter2@5.0.1/lib/eventemitter2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+    
 </head>
 <body>
     <div class="header">
@@ -367,7 +368,8 @@
             init() {
                 Logger.log('🎯 Initializing Simple 3D Renderer...');
                 this.createScene();
-                this.createRobot();
+                // this.createRobot();
+                this.createAtomrcDolphinAirplane();
                 this.setupControls();
                 this.startAnimation();
                 this.updateStatus('✅ Simple 3D renderer ready');
@@ -499,6 +501,117 @@
                 this.updateRobotPose();
             }
             
+            createAtomrcDolphinAirplane() {
+                this.robotGroup = new THREE.Group();
+
+                // === Fuselage (cylinder + hemispheres) ===
+                const fuselageMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x004477,
+                    roughness: 0.4,
+                    metalness: 0.3
+                });
+
+                const bodyGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.6, 16);
+                const body = new THREE.Mesh(bodyGeometry, fuselageMaterial);
+                body.rotation.z = Math.PI / 2;
+                body.castShadow = true;
+                body.receiveShadow = true;
+
+                const hemiFront = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.06, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+                    fuselageMaterial
+                );
+                hemiFront.position.set(0.3, 0, 0);
+                hemiFront.rotation.z = Math.PI / 2;
+
+                const hemiBack = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.06, 16, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+                    fuselageMaterial
+                );
+                hemiBack.position.set(-0.3, 0, 0);
+                hemiBack.rotation.z = Math.PI / 2;
+
+                const fuselage = new THREE.Group();
+                fuselage.add(body);
+                fuselage.add(hemiFront);
+                fuselage.add(hemiBack);
+                this.robotGroup.add(fuselage);
+
+                // === Wings (delta configuration) ===
+                const createDeltaWingMesh = (isLeft = true) => {
+                    const wingShape = new THREE.Shape();
+                    const wingLength = 0.25;
+                    const wingSpan = 0.12;
+
+                    if (isLeft) {
+                        wingShape.moveTo(0, 0);
+                        wingShape.lineTo(-wingLength, -wingSpan);
+                        wingShape.lineTo(-wingLength, wingSpan);
+                        wingShape.lineTo(0, 0);
+                    } else {
+                        wingShape.moveTo(0, 0);
+                        wingShape.lineTo(-wingLength, wingSpan);
+                        wingShape.lineTo(-wingLength, -wingSpan);
+                        wingShape.lineTo(0, 0);
+                    }
+
+                    const geometry = new THREE.ShapeGeometry(wingShape);
+                    const material = new THREE.MeshStandardMaterial({
+                        color: 0x555555,
+                        roughness: 0.5,
+                        metalness: 0.1,
+                        side: THREE.DoubleSide
+                    });
+
+                    const mesh = new THREE.Mesh(geometry, material);
+                    mesh.rotation.x = -Math.PI / 2;
+                    return mesh;
+                };
+
+                const leftWing = createDeltaWingMesh(true);
+                leftWing.position.set(0, -0.02, 0);
+                this.robotGroup.add(leftWing);
+
+                const rightWing = createDeltaWingMesh(false);
+                rightWing.position.set(0, 0.02, 0);
+                this.robotGroup.add(rightWing);
+
+                // === Tail fin (vertical stabilizer) ===
+                const tailFinGeometry = new THREE.BoxGeometry(0.12, 0.02, 0.08);
+                const tailFin = new THREE.Mesh(tailFinGeometry, fuselageMaterial);
+                tailFin.position.set(-0.28, 0, 0.07);
+                tailFin.rotation.x = Math.PI / 2;
+                this.robotGroup.add(tailFin);
+
+                // === Propeller (rear mounted) ===
+                const propellerGeometry = new THREE.BoxGeometry(0.02, 0.08, 0.01);
+                const propellerMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+                const propeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
+                propeller.position.set(-0.33, 0, 0);
+                this.robotGroup.add(propeller);
+
+                // === Optional: Camera dome (cockpit bubble) ===
+                const domeGeometry = new THREE.SphereGeometry(0.035, 16, 16, 0, Math.PI);
+                const domeMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x88aaff,
+                    transparent: true,
+                    opacity: 0.5,
+                    roughness: 0.2,
+                    metalness: 0.1
+                });
+                const dome = new THREE.Mesh(domeGeometry, domeMaterial);
+                dome.rotation.x = Math.PI / 2;
+                dome.position.set(0.15, 0, 0.045);
+                this.robotGroup.add(dome);
+
+                // === Add to scene and update pose ===
+                this.scene.add(this.robotGroup);
+                this.updateRobotPose();
+            }
+
+
+
+
             setupControls() {
                 const canvas = this.renderer.domElement;
                 let mouseDown = false;
@@ -1003,7 +1116,7 @@
                 // Normalize to [-π, π]
                 heading_error = Math.atan2(Math.sin(heading_error), Math.cos(heading_error));
                 
-                // Controller gains (from MATLAB)
+                // Controller gains
                 const kp_v = 2.0;
                 const kp_omega = 5.0;
                 
