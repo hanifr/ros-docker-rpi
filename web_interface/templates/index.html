@@ -3,650 +3,658 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>🤖 Gazebo-ROS2-Pi Control Center</title>
+    <title>Advanced Control Interface - Corporate Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <style>
+        :root {
+            --primary-blue: #60a5fa;
+            --secondary-blue: #3b82f6;
+            --accent-blue: #93c5fd;
+            --light-blue: #1e40af;
+            --dark-background: #0f172a;
+            --card-background: #1e293b;
+            --panel-background: #334155;
+            --surface-background: #475569;
+            --success-green: #22c55e;
+            --warning-amber: #fbbf24;
+            --error-red: #f87171;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #475569;
+            --border-light: #64748b;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: #ffffff;
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark-background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 14px;
             min-height: 100vh;
         }
-        
+
+        /* Header */
         .header {
-            background: rgba(0, 0, 0, 0.8);
-            padding: 1rem 2rem;
-            border-bottom: 2px solid #007acc;
-            backdrop-filter: blur(10px);
+            background: var(--card-background);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 1.5rem 2rem;
         }
-        
-        .header h1 {
-            font-size: 2rem;
-            background: linear-gradient(45deg, #007acc, #00d4ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+
+        .header-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
         }
-        
-        .container { 
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .header-info h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .header-info p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Navigation */
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .nav-link {
+            padding: 0.5rem 0.8rem;
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: rgba(96, 165, 250, 0.2);
+            border-color: var(--primary-blue);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--secondary-blue), var(--light-blue));
+            border-color: var(--primary-blue);
+            box-shadow: var(--shadow-md);
+        }
+
+        .nav-link.advanced {
+            background: linear-gradient(135deg, var(--warning-amber), #f59e0b);
+            border-color: var(--warning-amber);
+        }
+
+        .nav-link.advanced:hover {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-online {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success-green);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .status-offline {
+            background: rgba(248, 113, 113, 0.1);
+            color: var(--error-red);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 2rem;
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 2rem;
-            padding: 2rem;
-            max-width: 1800px;
-            margin: 0 auto;
-            min-height: calc(100vh - 100px);
+            min-height: calc(100vh - 120px);
         }
-        
-        .panel { 
-            background: rgba(42, 42, 42, 0.95);
-            padding: 1.5rem;
+
+        .panel {
+            background: var(--card-background);
             border-radius: 12px;
-            border: 1px solid rgba(64, 64, 64, 0.8);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
         }
-        
-        .panel h2 {
-            color: #00d4ff;
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-            border-bottom: 2px solid rgba(0, 122, 204, 0.3);
-            padding-bottom: 0.5rem;
+
+        .panel-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--panel-background);
         }
-        
-        .panel h3 {
-            color: #00aa88;
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-content {
+            padding: 1.5rem 2rem;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
             margin: 1.5rem 0 1rem 0;
-            font-size: 1.2rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
         }
-        
-        #ros3d-container { 
+
+        /* 3D Viewer */
+        #ros3d-container {
             width: 100%;
-            height: 600px;
-            border: 2px solid #404040;
+            height: 500px;
+            border: 2px solid var(--border-color);
             border-radius: 8px;
             background: #000000;
             position: relative;
             overflow: hidden;
+            margin-bottom: 1.5rem;
         }
-        
+
         .viewer-overlay {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            color: #00ff00;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--success-green);
             z-index: 100;
-            font-family: monospace;
+            font-family: 'Monaco', 'Menlo', monospace;
         }
-        
-        .controls { 
+
+        /* Controls */
+        .controls {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 1rem;
-            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
         }
-        
+
         .control-section {
             display: flex;
             flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 0.5rem;
         }
-        
-        button { 
-            padding: 1rem;
-            font-size: 1rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            background: linear-gradient(135deg, #007acc 0%, #005c99 100%);
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-blue), var(--light-blue));
             color: white;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
-        
-        button:hover { 
-            background: linear-gradient(135deg, #005c99 0%, #004466 100%);
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--light-blue), #1e3a8a);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+            box-shadow: var(--shadow-md);
         }
-        
-        button:active { 
-            transform: translateY(0);
-            box-shadow: 0 2px 6px rgba(0, 122, 204, 0.3);
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--error-red), #dc2626);
+            color: white;
         }
-        
-        button.emergency {
-            background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
-        
-        button.emergency:hover {
-            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+
+        .btn-special {
+            background: linear-gradient(135deg, var(--warning-amber), #f59e0b);
+            color: #1f2937;
         }
-        
-        .status { 
+
+        .btn-special:hover {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Status Indicators */
+        .status {
             padding: 1rem;
-            margin-top: 1rem;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 0.9rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.875rem;
             border-left: 4px solid;
         }
-        
-        .status.connected { 
-            background: rgba(45, 80, 22, 0.8);
-            color: #90ee90;
-            border-left-color: #90ee90;
+
+        .status.connected {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success-green);
+            border-left-color: var(--success-green);
         }
-        
-        .status.disconnected { 
-            background: rgba(93, 22, 22, 0.8);
-            color: #ffcccb;
-            border-left-color: #ffcccb;
+
+        .status.disconnected {
+            background: rgba(248, 113, 113, 0.1);
+            color: var(--error-red);
+            border-left-color: var(--error-red);
         }
-        
-        .log { 
-            background: rgba(26, 26, 26, 0.9);
-            padding: 1rem;
-            border-radius: 6px;
-            height: 300px;
-            overflow-y: auto;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.85rem;
-            border: 1px solid rgba(64, 64, 64, 0.8);
-            color: #00ff88;
-            line-height: 1.4;
-        }
-        
-        .log::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .log::-webkit-scrollbar-track {
-            background: rgba(64, 64, 64, 0.3);
-        }
-        
-        .log::-webkit-scrollbar-thumb {
-            background: rgba(0, 122, 204, 0.6);
-            border-radius: 3px;
-        }
-        
+
+        /* Sensor Grid */
         .sensor-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
-            margin-top: 1rem;
+            margin-bottom: 1.5rem;
         }
-        
+
         .sensor-card {
-            background: rgba(0, 0, 0, 0.4);
+            background: var(--surface-background);
             padding: 1rem;
-            border-radius: 6px;
-            border: 1px solid rgba(64, 64, 64, 0.6);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
-        
+
         .sensor-card h4 {
-            color: #ffaa00;
+            color: var(--warning-amber);
             margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
         }
-        
+
         .sensor-value {
-            font-family: monospace;
-            font-size: 1.1rem;
-            color: #00ff88;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 1rem;
+            color: var(--success-green);
+            font-weight: 500;
         }
-        
+
+        /* Activity Log */
+        .log {
+            background: var(--surface-background);
+            padding: 1rem;
+            border-radius: 8px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.75rem;
+            border: 1px solid var(--border-color);
+            color: var(--success-green);
+            line-height: 1.4;
+        }
+
+        .log::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log::-webkit-scrollbar-track {
+            background: var(--card-background);
+        }
+
+        .log::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        /* Keyboard Help */
+        .keyboard-help {
+            background: var(--surface-background);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .keyboard-help kbd {
+            background: var(--panel-background);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            font-size: 0.75rem;
+        }
+
+        /* Loading State */
         .loading {
             display: flex;
             align-items: center;
             justify-content: center;
             height: 100%;
-            font-size: 1.2rem;
-            color: #007acc;
+            font-size: 1.1rem;
+            color: var(--primary-blue);
         }
-        
+
         .loading::after {
             content: '';
             margin-left: 10px;
             width: 20px;
             height: 20px;
-            border: 2px solid rgba(0, 122, 204, 0.3);
-            border-top: 2px solid #007acc;
+            border: 2px solid rgba(96, 165, 250, 0.3);
+            border-top: 2px solid var(--primary-blue);
             border-radius: 50%;
             animation: spin 1s infinite linear;
         }
-        
+
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
-        .keyboard-help {
-            background: rgba(0, 0, 0, 0.6);
-            padding: 1rem;
-            border-radius: 6px;
-            margin-top: 1rem;
-            font-size: 0.85rem;
-            color: #cccccc;
-        }
-        
-        .keyboard-help kbd {
-            background: rgba(64, 64, 64, 0.8);
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-            font-family: monospace;
-            color: #ffffff;
-        }
 
-        @media (max-width: 1200px) {
-            .container {
+        /* Responsive Design */
+        @media (max-width: 1400px) {
+            .main-content {
                 grid-template-columns: 1fr;
-                gap: 1rem;
+                gap: 1.5rem;
             }
-            
+
             #ros3d-container {
                 height: 400px;
             }
-            
+
             .controls {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
+
+        @media (max-width: 1024px) {
+            .nav-links {
+                gap: 0.3rem;
+            }
+
+            .nav-link {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.6rem;
+            }
+
+            .sensor-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .nav-links {
+                justify-content: center;
+                gap: 0.3rem;
+            }
+
+            .nav-text {
+                display: none;
+            }
+
+            .nav-link {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.75rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .panel-header,
+            .panel-content {
+                padding: 1rem;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            #ros3d-container {
+                height: 300px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-link {
+                padding: 0.3rem 0.5rem;
+                font-size: 0.7rem;
+            }
+        }
     </style>
     
-    <!-- Only load essential libraries first -->
+    <!-- Essential libraries -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.89.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/eventemitter2@5.0.1/lib/eventemitter2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
-    
 </head>
 <body>
-
-   <!-- Navigation Component -->
-    <nav id="interface-navigation" style="
-        background: rgba(0, 0, 0, 0.9);
-        backdrop-filter: blur(10px);
-        border-bottom: 2px solid #007acc;
-        padding: 0.75rem 1rem;
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 1rem;
-    ">
-        <!-- Logo/Title -->
-        <div style="
-            font-size: 1.2rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, #007acc, #00d4ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            color: #007acc;
-        ">
-            🤖 ROS 2 Platform
-        </div>
-        
-        <!-- Navigation Links -->
-        <div id="nav-links" style="
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            align-items: center;
-        ">
-            <a href="/" class="nav-link" data-interface="dashboard" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                🏠 <span class="nav-text">Dashboard</span>
-            </a>
-            
-            <!-- <a href="/control" class="nav-link" data-interface="control" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                🎮 <span class="nav-text">Control</span>
-            </a> -->
-            
-            <a href="/physics" class="nav-link" data-interface="physics" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                ⚙️ <span class="nav-text">Physics</span>
-            </a>
-            
-            <!-- <a href="/data" class="nav-link" data-interface="data" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                📊 <span class="nav-text">Data</span>
-            </a> -->
-            
-            <!-- <a href="/quality" class="nav-link" data-interface="quality" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                🔬 <span class="nav-text">Quality</span>
-            </a> -->
-            
-            <a href="/material" class="nav-link" data-interface="material" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                📦 <span class="nav-text">Material</span>
-            </a>
-            
-            <a href="/amh-excel" class="nav-link" data-interface="excel" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                📈 <span class="nav-text">Excel</span>
-            </a>
-            
-            <a href="/advanced" class="nav-link" data-interface="advanced" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(255, 165, 0, 0.2);
-                border: 1px solid rgba(255, 165, 0, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(255, 165, 0, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 165, 0, 0.2)'; this.style.transform='translateY(0)'">
-                🚀 <span class="nav-text">Advanced</span>
-            </a>
-        </div>
-        
-        <!-- Status Indicator -->
-        <div id="nav-status" style="
-            padding: 0.3rem 0.6rem;
-            background: rgba(40, 167, 69, 0.2);
-            border: 1px solid rgba(40, 167, 69, 0.3);
-            border-radius: 15px;
-            font-size: 0.75rem;
-            color: #90ee90;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        ">
-            🟢 <span id="nav-status-text">Online</span>
-        </div>
-    </nav>
-
-    <!-- Mobile-responsive CSS for navigation -->
-    <style>
-    @media (max-width: 768px) {
-        #interface-navigation {
-            flex-direction: column;
-            align-items: stretch !important;
-        }
-        
-        #nav-links {
-            justify-content: center;
-            gap: 0.3rem !important;
-        }
-        
-        .nav-link {
-            font-size: 0.75rem !important;
-            padding: 0.4rem 0.6rem !important;
-        }
-        
-        .nav-text {
-            display: none;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .nav-link {
-            padding: 0.3rem 0.5rem !important;
-            font-size: 0.7rem !important;
-        }
-    }
-    </style>
-
-    <!-- JavaScript for navigation functionality -->
-    <script>
-    (function() {
-        // Highlight current page
-        function updateNavigation() {
-            const currentPath = window.location.pathname;
-            const navLinks = document.querySelectorAll('.nav-link');
-            
-            navLinks.forEach(link => {
-                const href = link.getAttribute('href');
-                const isActive = (currentPath === href) || 
-                            (currentPath === '/' && href === '/') ||
-                            (currentPath.includes(href) && href !== '/');
-                
-                if (isActive) {
-                    link.style.background = 'linear-gradient(135deg, #007acc 0%, #005c99 100%)';
-                    link.style.borderColor = '#00d4ff';
-                    link.style.boxShadow = '0 2px 8px rgba(0, 122, 204, 0.3)';
-                } else {
-                    link.style.background = 'rgba(0, 122, 204, 0.2)';
-                    link.style.borderColor = 'rgba(0, 122, 204, 0.3)';
-                    link.style.boxShadow = 'none';
-                }
-            });
-        }
-        
-        // Check ROS connection status
-        function checkConnectionStatus() {
-            fetch('/health')
-                .then(response => response.json())
-                .then(data => {
-                    const statusElement = document.getElementById('nav-status');
-                    const statusText = document.getElementById('nav-status-text');
-                    
-                    if (data.status === 'healthy') {
-                        statusElement.style.background = 'rgba(40, 167, 69, 0.2)';
-                        statusElement.style.borderColor = 'rgba(40, 167, 69, 0.3)';
-                        statusElement.style.color = '#90ee90';
-                        statusText.textContent = 'Online';
-                        statusElement.innerHTML = '🟢 <span id="nav-status-text">Online</span>';
-                    } else {
-                        statusElement.style.background = 'rgba(220, 53, 69, 0.2)';
-                        statusElement.style.borderColor = 'rgba(220, 53, 69, 0.3)';
-                        statusElement.style.color = '#ffcccb';
-                        statusElement.innerHTML = '🔴 <span id="nav-status-text">Offline</span>';
-                    }
-                })
-                .catch(error => {
-                    const statusElement = document.getElementById('nav-status');
-                    statusElement.style.background = 'rgba(255, 193, 7, 0.2)';
-                    statusElement.style.borderColor = 'rgba(255, 193, 7, 0.3)';
-                    statusElement.style.color = '#fff3cd';
-                    statusElement.innerHTML = '🟡 <span id="nav-status-text">Error</span>';
-                });
-        }
-        
-        // Initialize navigation
-        document.addEventListener('DOMContentLoaded', function() {
-            updateNavigation();
-            checkConnectionStatus();
-            
-            // Update status every 10 seconds
-            setInterval(checkConnectionStatus, 10000);
-        });
-        
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
-                updateNavigation();
-                checkConnectionStatus();
-            }
-        });
-    })();
-    </script>
-
-    <div class="header">
-        <h1>🤖 Gazebo-ROS2-Pi Control Center</h1>
-    </div>
-    
-    <div class="container">
-        <!-- 3D Visualization Panel -->
-        <div class="panel">
-            <h2>🎯 3D Robot Visualization</h2>
-            <div id="ros3d-container">
-                <div class="loading">Initializing 3D viewer...</div>
-                <div class="viewer-overlay">
-                    <div>Camera: Q/E - Up/Down | R - Reset</div>
-                    <div>Mouse: Drag - Rotate | Wheel - Zoom</div>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo">🚀</div>
+                <div class="header-info">
+                    <h1>Advanced Control Interface</h1>
+                    <p>3D Visualization • Robot Control • Real-time Monitoring</p>
                 </div>
             </div>
             
-            <div id="connection-status" class="status disconnected">
-                Connecting to ROS Bridge...
-            </div>
+            <!-- Navigation Links -->
+            <nav class="nav-links">
+                <a href="/" class="nav-link">
+                    🏠 <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="/physics" class="nav-link">
+                    ⚙️ <span class="nav-text">Physics</span>
+                </a>
+                <a href="/material" class="nav-link">
+                    📦 <span class="nav-text">Material</span>
+                </a>
+                <a href="/amh-excel" class="nav-link">
+                    📈 <span class="nav-text">Excel</span>
+                </a>
+                <a href="/advanced" class="nav-link advanced active">
+                    🚀 <span class="nav-text">Advanced</span>
+                </a>
+            </nav>
             
-            <div id="robot-status" class="status disconnected">
-                Loading robot model...
+            <div id="connection-status" class="status-badge status-offline">
+                <div class="status-indicator"></div>
+                <span>Connecting to ROS</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- 3D Visualization Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span>🎯</span>
+                    3D Robot Visualization
+                </h2>
+            </div>
+            <div class="panel-content">
+                <div id="ros3d-container">
+                    <div class="loading">Initializing 3D viewer...</div>
+                    <div class="viewer-overlay">
+                        <div>Camera: Q/E - Up/Down | R - Reset</div>
+                        <div>Mouse: Drag - Rotate | Wheel - Zoom</div>
+                    </div>
+                </div>
+                
+                <div id="robot-status" class="status disconnected">
+                    Loading robot model...
+                </div>
             </div>
         </div>
 
         <!-- Control Panel -->
         <div class="panel">
-            <h2>🎮 Robot Control</h2>
-            <div class="controls">
-                <div class="control-section">
-                    <button onclick="RobotController.moveRobot('forward')">⬆️ Forward</button>
-                    <button onclick="RobotController.moveRobot('backward')">⬇️ Backward</button>
-                </div>
-                <div class="control-section">
-                    <button onclick="RobotController.moveRobot('left')">⬅️ Turn Left</button>
-                    <button onclick="RobotController.moveRobot('right')">➡️ Turn Right</button>
-                </div>
-                <div class="control-section">
-                    <button onclick="RobotController.stopRobot()" class="emergency">⏹️ Stop</button>
-                    <button onclick="RobotController.executeFigureEight()">∞ Figure-8</button>
-                    <!-- <button onclick="RobotController.resetRobot()">🔄 Reset</button> -->
-                </div>
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <span>🎮</span>
+                    Robot Control Center
+                </h2>
             </div>
-            
-            <div class="keyboard-help">
-                <strong>Keyboard Controls:</strong><br>
-                <kbd>W/S</kbd> Forward/Backward • <kbd>A/D</kbd> Left/Right • <kbd>Space</kbd> Stop
-            </div>
-            
-            <h3>📊 Sensor Data</h3>
-            <div class="sensor-grid">
-                <div class="sensor-card">
-                    <h4>Position</h4>
-                    <div id="position-data" class="sensor-value">X: 0.00, Y: 0.00</div>
+            <div class="panel-content">
+                <div class="controls">
+                    <div class="control-section">
+                        <button class="btn btn-primary" onclick="RobotController.moveRobot('forward')">
+                            <span>⬆️</span>
+                            Forward
+                        </button>
+                        <button class="btn btn-primary" onclick="RobotController.moveRobot('backward')">
+                            <span>⬇️</span>
+                            Backward
+                        </button>
+                    </div>
+                    <div class="control-section">
+                        <button class="btn btn-primary" onclick="RobotController.moveRobot('left')">
+                            <span>⬅️</span>
+                            Turn Left
+                        </button>
+                        <button class="btn btn-primary" onclick="RobotController.moveRobot('right')">
+                            <span>➡️</span>
+                            Turn Right
+                        </button>
+                    </div>
+                    <div class="control-section">
+                        <button class="btn btn-danger" onclick="RobotController.stopRobot()">
+                            <span>⏹️</span>
+                            Stop
+                        </button>
+                        <button class="btn btn-special" onclick="RobotController.executeFigureEight()">
+                            <span>∞</span>
+                            Figure-8
+                        </button>
+                    </div>
                 </div>
-                <div class="sensor-card">
-                    <h4>Velocity</h4>
-                    <div id="velocity-data" class="sensor-value">Lin: 0.00, Ang: 0.00</div>
+                
+                <div class="keyboard-help">
+                    <strong>Keyboard Controls:</strong><br>
+                    <kbd>W/S</kbd> Forward/Backward • <kbd>A/D</kbd> Left/Right • <kbd>Space</kbd> Stop
                 </div>
-                <div class="sensor-card">
-                    <h4>Orientation</h4>
-                    <div id="orientation-data" class="sensor-value">Yaw: 0.00°</div>
+                
+                <h3 class="section-title">📊 Sensor Data</h3>
+                <div class="sensor-grid">
+                    <div class="sensor-card">
+                        <h4>Position</h4>
+                        <div id="position-data" class="sensor-value">X: 0.00, Y: 0.00</div>
+                    </div>
+                    <div class="sensor-card">
+                        <h4>Velocity</h4>
+                        <div id="velocity-data" class="sensor-value">Lin: 0.00, Ang: 0.00</div>
+                    </div>
+                    <div class="sensor-card">
+                        <h4>Orientation</h4>
+                        <div id="orientation-data" class="sensor-value">Yaw: 0.00°</div>
+                    </div>
+                    <div class="sensor-card">
+                        <h4>System Health</h4>
+                        <div id="battery-data" class="sensor-value">100%</div>
+                    </div>
                 </div>
-                <div class="sensor-card">
-                    <h4>Battery</h4>
-                    <div id="battery-data" class="sensor-value">100%</div>
+                
+                <h3 class="section-title">📝 Activity Log</h3>
+                <div id="robot-log" class="log">
+                    Waiting for robot data...
                 </div>
-            </div>
-            
-            <h3>📝 Activity Log</h3>
-            <div id="robot-log" class="log">
-                Waiting for robot data...
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         // =============================================================================
-        // SIMPLE 3D ROBOT RENDERER (No external dependencies)
+        // SIMPLE 3D ROBOT RENDERER
         // =============================================================================
         class SimpleRobotRenderer {
             constructor(containerId) {
@@ -665,7 +673,6 @@
                 Logger.log('🎯 Initializing Simple 3D Renderer...');
                 this.createScene();
                 this.createRobot();
-                // this.createAtomrcDolphinAirplane();
                 this.setupControls();
                 this.startAnimation();
                 this.updateStatus('✅ Simple 3D renderer ready');
@@ -676,7 +683,6 @@
                 const container = document.getElementById(this.containerId);
                 const rect = container.getBoundingClientRect();
                 
-                // Create Three.js scene
                 this.scene = new THREE.Scene();
                 this.camera = new THREE.PerspectiveCamera(75, rect.width / rect.height, 0.1, 1000);
                 this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -684,54 +690,35 @@
                 this.renderer.setSize(rect.width, rect.height);
                 this.renderer.setClearColor(0x111111);
                 
-                // Clear container and add renderer
                 container.innerHTML = '';
                 container.appendChild(this.renderer.domElement);
                 
-                // Add overlay back
                 const overlay = document.createElement('div');
                 overlay.className = 'viewer-overlay';
                 overlay.innerHTML = `
-                    <div>Improved 3D View (Rotated)</div>
+                    <div>Professional 3D View</div>
                     <div>Mouse: Drag to rotate | Wheel to zoom</div>
                 `;
                 container.appendChild(overlay);
                 
-                // Add trajectory info overlay
-                const trajectoryOverlay = document.createElement('div');
-                trajectoryOverlay.className = 'trajectory-trail';
-                trajectoryOverlay.innerHTML = `
-                    <div>Trajectory Points: <span id="trail-count">0</span></div>
-                    <div>Distance: <span id="total-distance">0.00</span>m</div>
-                `;
-                container.appendChild(trajectoryOverlay);
-                
-                // Create a world group to contain all scene elements
                 this.worldGroup = new THREE.Group();
-                
-                // Rotate the entire world 90 degrees counter-clockwise around X axis
                 this.worldGroup.rotation.x = Math.PI / 2;
                 
-                // Camera position (adjusted for rotated world - angled top-down view)
                 this.camera.position.set(0, -3, 1);
                 this.camera.lookAt(0, 0, 0);
                 
-                // Add lighting
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
                 this.scene.add(ambientLight);
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
                 directionalLight.position.set(1, 1, 1);
                 this.scene.add(directionalLight);
                 
-                // Add grid to world group (will be rotated)
                 const gridHelper = new THREE.GridHelper(10, 20, 0x444444, 0x222222);
                 this.worldGroup.add(gridHelper);
                 
-                // Add axes to world group (will be rotated)
                 const axesHelper = new THREE.AxesHelper(1);
                 this.worldGroup.add(axesHelper);
                 
-                // Add the rotated world group to the scene
                 this.scene.add(this.worldGroup);
             }
             
@@ -751,8 +738,7 @@
                 base.receiveShadow = true;
                 this.robotGroup.add(base);
                 
-                // Wheels (black cylinders)
-                // Wheels (black cylinders with axle detail)
+                // Wheels
                 const wheelGeometry = new THREE.CylinderGeometry(0.09, 0.09, 0.05, 32);
                 const wheelMaterial = new THREE.MeshStandardMaterial({
                     color: 0x222222,
@@ -765,17 +751,16 @@
                 [0.175, -0.175].forEach(y => {
                     const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
                     wheel.position.set(0, y, 0.02);
-                    wheel.rotation.z = 0;  // Was: Math.PI / 2
+                    wheel.rotation.z = 0;
                     this.robotGroup.add(wheel);
-                    // Axle cap (detail)
+                    
                     const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.06, 16), axleMaterial);
                     axle.rotation.z = 0;
                     axle.position.copy(wheel.position);
                     this.robotGroup.add(axle);
                 });
                 
-                // Caster (gray sphere)
-                // Caster (smoother gray sphere, slightly recessed)
+                // Caster
                 const casterGeometry = new THREE.SphereGeometry(0.045, 24, 24);
                 const casterMaterial = new THREE.MeshStandardMaterial({
                     color: 0x888888,
@@ -785,7 +770,7 @@
                 caster.position.set(-0.2, 0, 0.045);
                 this.robotGroup.add(caster);
                 
-                // Direction arrow (red cone)
+                // Direction arrow
                 const arrowGeometry = new THREE.ConeGeometry(0.05, 0.15, 8);
                 const arrowMaterial = new THREE.MeshLambertMaterial({ color: 0xff3333 });
                 const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
@@ -797,117 +782,6 @@
                 this.updateRobotPose();
             }
             
-            createAtomrcDolphinAirplane() {
-                this.robotGroup = new THREE.Group();
-
-                // === Fuselage (cylinder + hemispheres) ===
-                const fuselageMaterial = new THREE.MeshStandardMaterial({
-                    color: 0x004477,
-                    roughness: 0.4,
-                    metalness: 0.3
-                });
-
-                const bodyGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.6, 16);
-                const body = new THREE.Mesh(bodyGeometry, fuselageMaterial);
-                body.rotation.z = Math.PI / 2;
-                body.castShadow = true;
-                body.receiveShadow = true;
-
-                const hemiFront = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.06, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-                    fuselageMaterial
-                );
-                hemiFront.position.set(0.3, 0, 0);
-                hemiFront.rotation.z = Math.PI / 2;
-
-                const hemiBack = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.06, 16, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
-                    fuselageMaterial
-                );
-                hemiBack.position.set(-0.3, 0, 0);
-                hemiBack.rotation.z = Math.PI / 2;
-
-                const fuselage = new THREE.Group();
-                fuselage.add(body);
-                fuselage.add(hemiFront);
-                fuselage.add(hemiBack);
-                this.robotGroup.add(fuselage);
-
-                // === Wings (delta configuration) ===
-                const createDeltaWingMesh = (isLeft = true) => {
-                    const wingShape = new THREE.Shape();
-                    const wingLength = 0.25;
-                    const wingSpan = 0.12;
-
-                    if (isLeft) {
-                        wingShape.moveTo(0, 0);
-                        wingShape.lineTo(-wingLength, -wingSpan);
-                        wingShape.lineTo(-wingLength, wingSpan);
-                        wingShape.lineTo(0, 0);
-                    } else {
-                        wingShape.moveTo(0, 0);
-                        wingShape.lineTo(-wingLength, wingSpan);
-                        wingShape.lineTo(-wingLength, -wingSpan);
-                        wingShape.lineTo(0, 0);
-                    }
-
-                    const geometry = new THREE.ShapeGeometry(wingShape);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: 0x555555,
-                        roughness: 0.5,
-                        metalness: 0.1,
-                        side: THREE.DoubleSide
-                    });
-
-                    const mesh = new THREE.Mesh(geometry, material);
-                    mesh.rotation.x = -Math.PI / 2;
-                    return mesh;
-                };
-
-                const leftWing = createDeltaWingMesh(true);
-                leftWing.position.set(0, -0.02, 0);
-                this.robotGroup.add(leftWing);
-
-                const rightWing = createDeltaWingMesh(false);
-                rightWing.position.set(0, 0.02, 0);
-                this.robotGroup.add(rightWing);
-
-                // === Tail fin (vertical stabilizer) ===
-                const tailFinGeometry = new THREE.BoxGeometry(0.12, 0.02, 0.08);
-                const tailFin = new THREE.Mesh(tailFinGeometry, fuselageMaterial);
-                tailFin.position.set(-0.28, 0, 0.07);
-                tailFin.rotation.x = Math.PI / 2;
-                this.robotGroup.add(tailFin);
-
-                // === Propeller (rear mounted) ===
-                const propellerGeometry = new THREE.BoxGeometry(0.02, 0.08, 0.01);
-                const propellerMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
-                const propeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
-                propeller.position.set(-0.33, 0, 0);
-                this.robotGroup.add(propeller);
-
-                // === Optional: Camera dome (cockpit bubble) ===
-                const domeGeometry = new THREE.SphereGeometry(0.035, 16, 16, 0, Math.PI);
-                const domeMaterial = new THREE.MeshStandardMaterial({
-                    color: 0x88aaff,
-                    transparent: true,
-                    opacity: 0.5,
-                    roughness: 0.2,
-                    metalness: 0.1
-                });
-                const dome = new THREE.Mesh(domeGeometry, domeMaterial);
-                dome.rotation.x = Math.PI / 2;
-                dome.position.set(0.15, 0, 0.045);
-                this.robotGroup.add(dome);
-
-                // === Add to scene and update pose ===
-                this.scene.add(this.robotGroup);
-                this.updateRobotPose();
-            }
-
-
-
-
             setupControls() {
                 const canvas = this.renderer.domElement;
                 let mouseDown = false;
@@ -944,7 +818,6 @@
                     e.preventDefault();
                 });
                 
-                // Keyboard camera controls
                 document.addEventListener('keydown', (e) => {
                     if (e.target.tagName.toLowerCase() === 'input') return;
                     
@@ -1007,175 +880,8 @@
         }
         
         // =============================================================================
-        // ROBOT CONTROLLER (Separated from rendering)
+        // ROBOT CONTROLLER
         // =============================================================================
-        // class RobotController {
-        //     static ros = null;
-        //     static cmdVelPublisher = null;
-        //     static odomSubscriber = null;
-        //     static isConnected = false;
-        //     static renderer = null;
-            
-        //     static init() {
-        //         Logger.log('🤖 Initializing Robot Controller...');
-        //         this.connectToROS();
-        //     }
-            
-        //     static connectToROS() {
-        //         const rosUrl = 'ws://' + window.location.hostname + ':9090';
-        //         Logger.log('🚀 Connecting to ROS Bridge at ' + rosUrl);
-                
-        //         this.ros = new ROSLIB.Ros({ url: rosUrl });
-                
-        //         this.ros.on('connection', () => {
-        //             this.isConnected = true;
-        //             Logger.log('✅ Connected to ROS Bridge');
-        //             this.setupROSCommunication();
-        //             this.updateConnectionStatus(true);
-        //         });
-                
-        //         this.ros.on('error', (error) => {
-        //             this.isConnected = false;
-        //             Logger.log('❌ ROS Connection Error: ' + error);
-        //             this.updateConnectionStatus(false, error.toString());
-        //         });
-                
-        //         this.ros.on('close', () => {
-        //             this.isConnected = false;
-        //             Logger.log('🔌 Disconnected from ROS Bridge');
-        //             this.updateConnectionStatus(false);
-        //         });
-        //     }
-            
-        //     static setupROSCommunication() {
-        //         // Publisher for robot movement
-        //         this.cmdVelPublisher = new ROSLIB.Topic({
-        //             ros: this.ros,
-        //             name: '/cmd_vel',
-        //             messageType: 'geometry_msgs/Twist'
-        //         });
-                
-        //         // Subscriber for robot odometry
-        //         this.odomSubscriber = new ROSLIB.Topic({
-        //             ros: this.ros,
-        //             name: '/odom',
-        //             messageType: 'nav_msgs/Odometry'
-        //         });
-                
-        //         this.odomSubscriber.subscribe((message) => {
-        //             this.handleOdometryUpdate(message);
-        //         });
-                
-        //         Logger.log('✅ ROS communication setup complete');
-        //     }
-            
-        //     static handleOdometryUpdate(odom) {
-        //         const pos = odom.pose.pose.position;
-        //         const vel = odom.twist.twist.linear;
-        //         const angVel = odom.twist.twist.angular;
-        //         const orientation = odom.pose.pose.orientation;
-                
-        //         // Calculate yaw from quaternion
-        //         const yaw = Math.atan2(
-        //             2 * (orientation.w * orientation.z + orientation.x * orientation.y),
-        //             1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
-        //         );
-                
-        //         // Update 3D renderer
-        //         if (this.renderer) {
-        //             this.renderer.setRobotPosition(pos.x, pos.y, pos.z);
-        //             this.renderer.setRobotOrientation(yaw);
-        //         }
-                
-        //         // Update sensor displays
-        //         SensorDisplay.updateSensorData(odom);
-        //     }
-            
-        //     static moveRobot(direction) {
-        //         if (!this.cmdVelPublisher || !this.isConnected) {
-        //             Logger.log('❌ Cannot move robot - not connected');
-        //             return;
-        //         }
-                
-        //         const twist = new ROSLIB.Message({
-        //             linear: { x: 0, y: 0, z: 0 },
-        //             angular: { x: 0, y: 0, z: 0 }
-        //         });
-                
-        //         switch(direction) {
-        //             case 'forward':
-        //                 twist.linear.x = 0.5;
-        //                 break;
-        //             case 'backward':
-        //                 twist.linear.x = -0.5;
-        //                 break;
-        //             case 'left':
-        //                 twist.angular.z = 0.5;
-        //                 break;
-        //             case 'right':
-        //                 twist.angular.z = -0.5;
-        //                 break;
-        //         }
-                
-        //         this.cmdVelPublisher.publish(twist);
-        //         Logger.log('🎮 Moving ' + direction);
-        //     }
-            
-        //     static stopRobot() {
-        //         if (!this.cmdVelPublisher || !this.isConnected) {
-        //             Logger.log('❌ Cannot stop robot - not connected');
-        //             return;
-        //         }
-                
-        //         const twist = new ROSLIB.Message({
-        //             linear: { x: 0, y: 0, z: 0 },
-        //             angular: { x: 0, y: 0, z: 0 }
-        //         });
-                
-        //         this.cmdVelPublisher.publish(twist);
-        //         Logger.log('⏹️ Robot stopped');
-        //     }
-            
-        //     static resetRobot() {
-        //         this.stopRobot();
-                
-        //         if (!this.ros || !this.isConnected) {
-        //             Logger.log('⚠️ Cannot reset - not connected');
-        //             return;
-        //         }
-                
-        //         const resetService = new ROSLIB.Service({
-        //             ros: this.ros,
-        //             name: '/reset_simulation',
-        //             serviceType: 'std_srvs/Empty'
-        //         });
-                
-        //         const request = new ROSLIB.ServiceRequest({});
-                
-        //         resetService.callService(request, 
-        //             (result) => Logger.log('🔄 Robot reset successfully'),
-        //             (error) => Logger.log('⚠️ Reset service not available')
-        //         );
-        //     }
-            
-        //     static updateConnectionStatus(connected, errorMsg = '') {
-        //         const statusElement = document.getElementById('connection-status');
-        //         if (statusElement) {
-        //             if (connected) {
-        //                 statusElement.className = 'status connected';
-        //                 statusElement.textContent = '✅ Connected to ROS Bridge';
-        //             } else {
-        //                 statusElement.className = 'status disconnected';
-        //                 const message = errorMsg ? `❌ Connection Error: ${errorMsg}` : '❌ Disconnected from ROS Bridge';
-        //                 statusElement.textContent = message;
-        //             }
-        //         }
-        //     }
-            
-        //     static setRenderer(renderer) {
-        //         this.renderer = renderer;
-        //     }
-        // }
         class RobotController {
             static ros = null;
             static cmdVelPublisher = null;
@@ -1197,6 +903,7 @@
             
             static connectToROS() {
                 const rosUrl = 'ws://' + window.location.hostname + ':9090';
+                // const rosUrl = 'ws://192.168.1.104:9090';
                 Logger.log('🚀 Connecting to ROS Bridge at ' + rosUrl);
                 
                 this.ros = new ROSLIB.Ros({ url: rosUrl });
@@ -1222,14 +929,12 @@
             }
             
             static setupROSCommunication() {
-                // Publisher for robot movement
                 this.cmdVelPublisher = new ROSLIB.Topic({
                     ros: this.ros,
                     name: '/cmd_vel',
                     messageType: 'geometry_msgs/Twist'
                 });
                 
-                // Subscriber for robot odometry
                 this.odomSubscriber = new ROSLIB.Topic({
                     ros: this.ros,
                     name: '/odom',
@@ -1245,27 +950,21 @@
             
             static handleOdometryUpdate(odom) {
                 const pos = odom.pose.pose.position;
-                const vel = odom.twist.twist.linear;
-                const angVel = odom.twist.twist.angular;
                 const orientation = odom.pose.pose.orientation;
                 
-                // Calculate yaw from quaternion
                 const yaw = Math.atan2(
                     2 * (orientation.w * orientation.z + orientation.x * orientation.y),
                     1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
                 );
                 
-                // Store current state for figure-8 controller
                 this.currentPosition = { x: pos.x, y: pos.y };
                 this.currentTheta = yaw;
                 
-                // Update 3D renderer
                 if (this.renderer) {
                     this.renderer.setRobotPosition(pos.x, pos.y, pos.z);
                     this.renderer.setRobotOrientation(yaw);
                 }
                 
-                // Update sensor displays
                 SensorDisplay.updateSensorData(odom);
             }
             
@@ -1305,7 +1004,6 @@
                     return;
                 }
                 
-                // Stop figure-8 if active
                 if (this.figureEightActive) {
                     this.stopFigureEight();
                 }
@@ -1317,28 +1015,6 @@
                 
                 this.cmdVelPublisher.publish(twist);
                 Logger.log('⏹️ Robot stopped');
-            }
-            
-            static resetRobot() {
-                this.stopRobot();
-                
-                if (!this.ros || !this.isConnected) {
-                    Logger.log('⚠️ Cannot reset - not connected');
-                    return;
-                }
-                
-                const resetService = new ROSLIB.Service({
-                    ros: this.ros,
-                    name: '/reset_simulation',
-                    serviceType: 'std_srvs/Empty'
-                });
-                
-                const request = new ROSLIB.ServiceRequest({});
-                
-                resetService.callService(request, 
-                    (result) => Logger.log('🔄 Robot reset successfully'),
-                    (error) => Logger.log('⚠️ Reset service not available')
-                );
             }
             
             // Figure-8 Pattern Functions
@@ -1366,7 +1042,6 @@
                 this.figureEightActive = true;
                 this.figureEightStartTime = Date.now();
                 
-                // Start the control loop
                 this.figureEightControlLoop();
             }
             
@@ -1386,48 +1061,36 @@
                     return;
                 }
                 
-                // Time parameter for path (0 to 2π over 20 seconds)
                 const elapsedTime = (Date.now() - this.figureEightStartTime) / 1000.0;
-                const period = 20.0; // 20 seconds for complete figure-8
+                const period = 20.0;
                 const t = (2 * Math.PI * elapsedTime / period) % (2 * Math.PI);
                 
-                // Get current target point
                 const target = this.generateFigureEightPath(t);
                 
-                // Calculate next point for heading direction (look ahead)
                 const dt_look = 0.1;
                 const t_next = t + (2 * Math.PI * dt_look / period);
                 const target_next = this.generateFigureEightPath(t_next);
                 
-                // Calculate distance to target
                 const dx = target.x - this.currentPosition.x;
                 const dy = target.y - this.currentPosition.y;
                 const distance = Math.sqrt(dx*dx + dy*dy);
                 
-                // Calculate target heading (direction to next point)
                 const target_heading = Math.atan2(target_next.y - target.y, target_next.x - target.x);
                 
-                // Calculate heading error
                 let heading_error = target_heading - this.currentTheta;
-                // Normalize to [-π, π]
                 heading_error = Math.atan2(Math.sin(heading_error), Math.cos(heading_error));
                 
-                // Controller gains
                 const kp_v = 2.0;
                 const kp_omega = 5.0;
                 
-                // Calculate control inputs
                 let v = kp_v * distance;
                 let omega = kp_omega * heading_error;
                 
-                // Limit control inputs
                 v = Math.max(Math.min(v, 1.0), -1.0);
                 omega = Math.max(Math.min(omega, 2.0), -2.0);
                 
-                // Send velocity commands
                 this.sendVelocityCommand(v, omega);
                 
-                // Continue control loop at 50ms intervals (20 Hz)
                 this.figureEightTimer = setTimeout(() => {
                     this.figureEightControlLoop();
                 }, 50);
@@ -1450,12 +1113,12 @@
                 const statusElement = document.getElementById('connection-status');
                 if (statusElement) {
                     if (connected) {
-                        statusElement.className = 'status connected';
-                        statusElement.textContent = '✅ Connected to ROS Bridge';
+                        statusElement.className = 'status-badge status-online';
+                        statusElement.innerHTML = '<div class="status-indicator"></div><span>ROS Connected</span>';
                     } else {
-                        statusElement.className = 'status disconnected';
-                        const message = errorMsg ? `❌ Connection Error: ${errorMsg}` : '❌ Disconnected from ROS Bridge';
-                        statusElement.textContent = message;
+                        statusElement.className = 'status-badge status-offline';
+                        const message = errorMsg ? 'ROS Error' : 'ROS Offline';
+                        statusElement.innerHTML = `<div class="status-indicator"></div><span>${message}</span>`;
                     }
                 }
             }
@@ -1466,7 +1129,7 @@
         }
         
         // =============================================================================
-        // SENSOR DISPLAY (Separated from controller)
+        // SENSOR DISPLAY
         // =============================================================================
         class SensorDisplay {
             static updateSensorData(odom) {
@@ -1475,13 +1138,11 @@
                 const angVel = odom.twist.twist.angular;
                 const orientation = odom.pose.pose.orientation;
                 
-                // Calculate yaw from quaternion
                 const yaw = Math.atan2(
                     2 * (orientation.w * orientation.z + orientation.x * orientation.y),
                     1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
                 ) * 180 / Math.PI;
                 
-                // Update sensor displays
                 document.getElementById('position-data').textContent = 
                     `X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}`;
                 
@@ -1491,14 +1152,13 @@
                 document.getElementById('orientation-data').textContent = 
                     `Yaw: ${yaw.toFixed(1)}°`;
                 
-                // Update battery (simulated)
                 const battery = Math.max(50, 100 - Math.abs(pos.x + pos.y) * 2);
                 document.getElementById('battery-data').textContent = `${battery.toFixed(0)}%`;
             }
         }
         
         // =============================================================================
-        // LOGGER (Separated utility)
+        // LOGGER
         // =============================================================================
         class Logger {
             static log(message) {
@@ -1514,7 +1174,7 @@
         }
         
         // =============================================================================
-        // KEYBOARD CONTROLS (Separated from other logic)
+        // KEYBOARD CONTROLS
         // =============================================================================
         class KeyboardController {
             static init() {
@@ -1552,25 +1212,53 @@
         }
         
         // =============================================================================
+        // NAVIGATION FUNCTIONALITY
+        // =============================================================================
+        function updateNavigation() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                const isActive = (currentPath === href) || 
+                            (currentPath === '/' && href === '/') ||
+                            (currentPath.includes(href) && href !== '/');
+                
+                if (isActive) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        }
+        
+        // =============================================================================
         // INITIALIZATION
         // =============================================================================
         window.addEventListener('load', function() {
-            Logger.log('🚀 Starting Gazebo-ROS2-Pi Control Center...');
+            Logger.log('🚀 Starting Advanced Control Interface...');
             
-            // Wait for libraries to load
             if (typeof THREE === 'undefined' || typeof ROSLIB === 'undefined') {
                 Logger.log('⏳ Waiting for libraries to load...');
                 setTimeout(() => window.location.reload(), 2000);
                 return;
             }
             
-            // Initialize components in order
+            // Initialize components
             const renderer = new SimpleRobotRenderer('ros3d-container');
             RobotController.setRenderer(renderer);
             RobotController.init();
             KeyboardController.init();
+            updateNavigation();
             
-            Logger.log('✅ System initialization complete');
+            Logger.log('✅ Corporate Advanced Control Interface initialized');
+        });
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                updateNavigation();
+            }
         });
     </script>
 </body>
