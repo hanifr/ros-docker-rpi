@@ -6,6 +6,14 @@
     <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
         .physics-tuner {
             max-width: 1400px;
             margin: 0 auto;
@@ -21,21 +29,21 @@
         }
         
         .parameter-panel {
-            background: #f8f9fa;
+            background: #1f4162;
             padding: 20px;
             border-radius: 8px;
             border: 2px solid #dee2e6;
         }
         
         .logging-panel {
-            background: #f0f8ff;
+            background: #1f4162;
             padding: 20px;
             border-radius: 8px;
             border: 2px solid #007bff;
         }
         
         .chart-panel {
-            background: #f5f5f5;
+            background: #b3d6f1;
             padding: 15px;
             border-radius: 8px;
             border: 2px solid #28a745;
@@ -44,7 +52,7 @@
         .param-control {
             margin: 15px 0;
             padding: 10px;
-            background: white;
+            background: #1f4162;
             border-radius: 5px;
             border: 1px solid #ccc;
         }
@@ -64,7 +72,7 @@
             min-width: 60px;
             text-align: center;
             font-weight: bold;
-            background: #e9ecef;
+            background: #1f4162;
             padding: 5px;
             border-radius: 3px;
         }
@@ -87,7 +95,7 @@
         .export-btn { background: #6f42c1; color: white; }
         
         .physics-result {
-            background: #d4edda;
+            background: #1f4162;
             border: 1px solid #c3e6cb;
             padding: 15px;
             margin: 10px 0;
@@ -148,7 +156,7 @@
         .analysis-results {
             font-family: monospace;
             font-size: 12px;
-            background: white;
+            background: rgb(58, 56, 56);
             padding: 10px;
             border: 1px solid #ccc;
             height: 120px;
@@ -577,7 +585,7 @@
         <!-- Parameter Summary -->
         <div class="parameter-panel full-width">
             <h3>📋 Current Parameter Summary</h3>
-            <div id="parameter-summary" style="font-family: monospace; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+            <div id="parameter-summary" style="font-family: monospace; background: #1f4162; padding: 15px; border-radius: 5px;">
                 <!-- Parameter summary will be populated here -->
             </div>
         </div>
@@ -586,8 +594,8 @@
     <script>
         // ROS connection
         var ros = new ROSLIB.Ros({
-            // url: 'ws://' + window.location.hostname + ':9090'
-            url: 'ws://192.168.1.104:9090'
+            url: 'ws://' + window.location.hostname + ':9090'
+            // url: 'ws://192.168.1.104:9090'
         });
         
         // Physics data storage
