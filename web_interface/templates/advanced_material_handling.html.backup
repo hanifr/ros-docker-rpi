@@ -1,10 +1,8 @@
-
 <!DOCTYPE html>
 <html>
 <head>
     <title>🚀 Advanced Material Handling System</title>
     <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -23,7 +21,7 @@
             text-align: center;
         }
 
-        .header h2 {
+        .header h1 {
             font-size: 2rem;
             background: linear-gradient(45deg, #007acc, #00d4ff);
             -webkit-background-clip: text;
@@ -34,10 +32,10 @@
         
         .mh-system {
             display: grid;
-            grid-template-columns: 1fr 1fr 300px 280px;
+            grid-template-columns: 1fr 1fr 300px;
             gap: 20px;
             padding: 20px;
-            max-width: 1800px;
+            max-width: 1600px;
             margin: 0 auto;
         }
         
@@ -53,7 +51,7 @@
         .panel h3 {
             color: #00d4ff;
             margin-bottom: 1rem;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             border-bottom: 2px solid rgba(0, 122, 204, 0.3);
             padding-bottom: 0.5rem;
         }
@@ -67,7 +65,7 @@
         .control-section {
             background: rgba(0, 0, 0, 0.3);
             padding: 1rem;
-            border-radius: 6px;
+            border-radius: 8px;
             margin: 1rem 0;
             border: 1px solid rgba(64, 64, 64, 0.6);
         }
@@ -84,7 +82,6 @@
             border: 2px solid #555;
             border-radius: 8px;
             padding: 12px;
-            font-size: 0.8rem;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
@@ -204,7 +201,7 @@
         }
 
         .status-value {
-            font-size: 0.9rem;
+            font-size: 1.2rem;
             font-weight: bold;
             color: #00ff88;
             font-family: monospace;
@@ -250,67 +247,6 @@
                 grid-template-columns: 1fr;
                 gap: 1rem;
             }
-        }
-
-        /* Excel Integration Styles */
-        .excel-controls {
-            display: grid;
-            gap: 8px;
-            margin: 1rem 0;
-        }
-
-        .data-preview-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-            font-size: 0.75rem;
-        }
-
-        .data-preview-table th, 
-        .data-preview-table td {
-            border: 1px solid #555;
-            padding: 4px 6px;
-            text-align: left;
-        }
-
-        .data-preview-table th {
-            background-color: rgba(0, 122, 204, 0.3);
-            color: #ffffff;
-            font-weight: bold;
-        }
-
-        .data-preview-table tbody {
-            max-height: 150px;
-            overflow-y: auto;
-            display: block;
-        }
-
-        .data-preview-table thead,
-        .data-preview-table tbody tr {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-        }
-
-        .collection-status {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 5px;
-            margin: 10px 0;
-            font-size: 0.8rem;
-        }
-
-        .collection-stat {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 6px;
-            border-radius: 4px;
-            text-align: center;
-        }
-
-        .collection-stat-value {
-            font-weight: bold;
-            color: #00ff88;
-            font-family: monospace;
         }
     </style>
 </head>
@@ -509,7 +445,7 @@
     </nav>
 
     <div class="header">
-        <h2>🚀 Advanced Material Handling System</h2>
+        <h1>🚀 Advanced Material Handling System</h1>
         <p style="margin: 0.5rem 0 0 0; color: #aaa;">Multi-Algorithm Robot Control Platform</p>
     </div>
     
@@ -559,7 +495,7 @@
                         <span class="material-count">Items: 0</span>
                     </div>
                     <div class="location-card robot-here" data-location="home" onclick="selectLocation('home')">
-                        <strong>🏠 Home</strong><br>
+                        <strong>🏠 Home Base</strong><br>
                         (0.0, 0.0)<br>
                         <span class="robot-status">🤖 Robot Here</span>
                     </div>
@@ -584,12 +520,10 @@
                         <option value="storage_a">🏪 Storage A</option>
                         <option value="storage_b">🏪 Storage B</option>
                         <option value="loading">📦 Loading Dock</option>
-                        <option value="workstation">🔧 Workstation</option>
                         <option value="inspection">🔍 Inspection</option>
                     </select>
                     <select id="dropoff-location">
                         <option value="">📥 Select dropoff</option>
-                        <option value="home">🏠 Home</option>
                         <option value="storage_a">🏪 Storage A</option>
                         <option value="storage_b">🏪 Storage B</option>
                         <option value="workstation">🔧 Workstation</option>
@@ -664,13 +598,6 @@
                     <div id="angular-velocity" class="status-value">0.0°/s</div>
                 </div>
             </div>
-
-            <h4>📝 System Log</h4>
-            <div class="system-log" id="system-log">
-                <!-- Log entries will appear here -->
-            </div>
-
-
         </div>
         
         <!-- Advanced Controls Panel -->
@@ -697,6 +624,11 @@
                 </div>
             </div>
             
+            <h4>📝 System Log</h4>
+            <div class="system-log" id="system-log">
+                <!-- Log entries will appear here -->
+            </div>
+            
             <h4>🎚️ Manual Control</h4>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 10px 0;">
                 <button onclick="manualMove('forward')" style="grid-column: 2;">⬆️</button>
@@ -704,65 +636,6 @@
                 <button onclick="manualMove('stop')" style="grid-column: 2; grid-row: 2;">⏹️</button>
                 <button onclick="manualMove('right')" style="grid-column: 3; grid-row: 2;">➡️</button>
                 <button onclick="manualMove('backward')" style="grid-column: 2; grid-row: 3;">⬇️</button>
-            </div>
-        </div>
-
-        <!-- Excel Integration Panel -->
-        <div class="panel">
-            <h3>📊 Excel Integration</h3>
-            
-            <h4>📁 Data Collection</h4>
-            <div class="collection-status">
-                <div class="collection-stat">
-                    <div>Status</div>
-                    <div id="collection-status" class="collection-stat-value">STOPPED</div>
-                </div>
-                <div class="collection-stat">
-                    <div>Records</div>
-                    <div id="record-count" class="collection-stat-value">0</div>
-                </div>
-                <div class="collection-stat">
-                    <div>Duration</div>
-                    <div id="collection-duration" class="collection-stat-value">00:00</div>
-                </div>
-                <div class="collection-stat">
-                    <div>Size</div>
-                    <div id="data-size" class="collection-stat-value">0 KB</div>
-                </div>
-            </div>
-            
-            <div class="excel-controls">
-                <button onclick="startDataCollection()" class="btn-success">▶️ Start Recording</button>
-                <button onclick="stopDataCollection()" class="btn-warning">⏹️ Stop Recording</button>
-                <button onclick="exportToExcel()" class="btn-primary">📊 Export Excel</button>
-                <button onclick="clearDataCollection()" class="btn-danger">🗑️ Clear Data</button>
-            </div>
-            
-            <h4>🔍 Live Data Preview</h4>
-            <div style="max-height: 180px; overflow-y: auto; border: 1px solid #555; border-radius: 6px;">
-                <table class="data-preview-table" id="data-preview">
-                    <thead>
-                        <tr>
-                            <th style="width: 25%;">Time</th>
-                            <th style="width: 25%;">X</th>
-                            <th style="width: 25%;">Y</th>
-                            <th style="width: 25%;">Vel</th>
-                        </tr>
-                    </thead>
-                    <tbody id="preview-body">
-                        <tr><td colspan="4" style="text-align: center; color: #888; font-style: italic;">No data collected</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <h4>📈 Export Features</h4>
-            <div style="font-size: 0.75rem; color: #aaa; line-height: 1.3;">
-                • Position tracking (X, Y coordinates)<br>
-                • Velocity and heading data<br>
-                • Job execution timeline<br>
-                • Control algorithm performance<br>
-                • Statistical analysis sheets<br>
-                • Excel-compatible timestamps
             </div>
         </div>
     </div>
@@ -796,13 +669,6 @@
         var updateCount = 0;
         var distanceError = 0;
         var headingError = 0;
-        
-        // Excel Data Collection
-        var collectingData = false;
-        var robotExcelData = [];
-        var dataCollectionStartTime = null;
-        var collectionTimer = null;
-        var lastJobEvent = null;
         
         // Location coordinates
         var locations = {
@@ -1251,41 +1117,11 @@
                 1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
             );
             
-            // Calculate velocity
-            var velocity = message.twist.twist.linear;
-            var speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-            
             // Update display
             document.getElementById('robot-position').textContent = 
                 `(${robotPosition.x.toFixed(2)}, ${robotPosition.y.toFixed(2)})`;
                 
             updateRobotLocationIndicator();
-            
-            // Excel Data Collection
-            if (collectingData) {
-                var currentTime = new Date();
-                var dataPoint = {
-                    timestamp: currentTime.toISOString(),
-                    time_seconds: (currentTime - dataCollectionStartTime) / 1000,
-                    x_position: robotPosition.x,
-                    y_position: robotPosition.y,
-                    velocity: speed,
-                    heading_deg: robotOrientation * 180 / Math.PI,
-                    control_mode: currentControlMode,
-                    system_state: systemState,
-                    current_job: currentJob ? `${locations[currentJob.pickup].name} → ${locations[currentJob.dropoff].name}` : 'None',
-                    job_stage: currentJob ? currentJob.stage : 'IDLE',
-                    distance_error: distanceError,
-                    heading_error: window.headingError || 0,
-                    linear_velocity_cmd: robotVelocity.linear,
-                    angular_velocity_cmd: robotVelocity.angular,
-                    excel_timestamp: currentTime.getTime() / 86400000 + 25569
-                };
-                
-                robotExcelData.push(dataPoint);
-                updateDataCollectionDisplay();
-                updateDataPreview();
-            }
             
             // Update performance counter
             updateCount++;
@@ -1786,316 +1622,6 @@
             if (lines.length > 100) {
                 logDiv.textContent = lines.slice(-80).join('\n');
             }
-            
-            // Log job events for Excel export
-            if (collectingData && (message.includes('Job') || message.includes('Pickup') || message.includes('Dropoff'))) {
-                lastJobEvent = {
-                    timestamp: new Date().toISOString(),
-                    event: message,
-                    time_seconds: (new Date() - dataCollectionStartTime) / 1000
-                };
-            }
-        }
-        
-        // =============================================================================
-        // EXCEL DATA COLLECTION FUNCTIONS
-        // =============================================================================
-        
-        function startDataCollection() {
-            if (collectingData) return;
-            
-            collectingData = true;
-            robotExcelData = [];
-            dataCollectionStartTime = new Date();
-            
-            document.getElementById('collection-status').textContent = 'RECORDING';
-            document.getElementById('collection-status').style.color = '#ff4444';
-            document.getElementById('record-count').textContent = '0';
-            
-            // Update duration timer
-            collectionTimer = setInterval(function() {
-                updateDataCollectionDisplay();
-            }, 1000);
-            
-            logMessage('📊 Excel data collection started');
-        }
-        
-        function stopDataCollection() {
-            collectingData = false;
-            document.getElementById('collection-status').textContent = 'STOPPED';
-            document.getElementById('collection-status').style.color = '#00ff88';
-            
-            if (collectionTimer) {
-                clearInterval(collectionTimer);
-                collectionTimer = null;
-            }
-            
-            logMessage(`📊 Excel data collection stopped - ${robotExcelData.length} records collected`);
-        }
-        
-        function clearDataCollection() {
-            if (collectingData) {
-                stopDataCollection();
-            }
-            
-            robotExcelData = [];
-            document.getElementById('record-count').textContent = '0';
-            document.getElementById('collection-duration').textContent = '00:00';
-            document.getElementById('data-size').textContent = '0 KB';
-            
-            // Clear preview table
-            var tbody = document.getElementById('preview-body');
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #888; font-style: italic;">No data collected</td></tr>';
-            
-            logMessage('📊 Excel data collection cleared');
-        }
-        
-        function updateDataCollectionDisplay() {
-            if (!dataCollectionStartTime) return;
-            
-            // Update record count
-            document.getElementById('record-count').textContent = robotExcelData.length;
-            
-            // Update duration
-            var elapsed = new Date() - dataCollectionStartTime;
-            var minutes = Math.floor(elapsed / 60000);
-            var seconds = Math.floor((elapsed % 60000) / 1000);
-            document.getElementById('collection-duration').textContent = 
-                minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
-            
-            // Estimate data size
-            var estimatedSize = robotExcelData.length * 200; // Rough estimate of bytes per record
-            var sizeKB = (estimatedSize / 1024).toFixed(1);
-            document.getElementById('data-size').textContent = sizeKB + ' KB';
-        }
-        
-        function updateDataPreview() {
-            var tbody = document.getElementById('preview-body');
-            
-            if (robotExcelData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #888; font-style: italic;">No data collected</td></tr>';
-                return;
-            }
-            
-            // Show last 8 records
-            var recentData = robotExcelData.slice(-8);
-            
-            tbody.innerHTML = '';
-            recentData.forEach(function(record) {
-                var row = tbody.insertRow();
-                row.insertCell(0).textContent = record.time_seconds.toFixed(1) + 's';
-                row.insertCell(1).textContent = record.x_position.toFixed(2);
-                row.insertCell(2).textContent = record.y_position.toFixed(2);
-                row.insertCell(3).textContent = record.velocity.toFixed(2);
-            });
-        }
-        
-        function exportToExcel() {
-            if (robotExcelData.length === 0) {
-                alert('No data to export. Start data collection first.');
-                return;
-            }
-            
-            // Prepare main data for Excel export
-            var excelData = robotExcelData.map(function(record) {
-                return {
-                    'Timestamp': record.timestamp,
-                    'Time_Seconds': record.time_seconds,
-                    'Excel_Date': record.excel_timestamp,
-                    'X_Position_m': record.x_position,
-                    'Y_Position_m': record.y_position,
-                    'Velocity_ms': record.velocity,
-                    'Heading_deg': record.heading_deg,
-                    'Control_Mode': record.control_mode,
-                    'System_State': record.system_state,
-                    'Current_Job': record.current_job,
-                    'Job_Stage': record.job_stage,
-                    'Distance_Error_m': record.distance_error,
-                    'Heading_Error_deg': record.heading_error,
-                    'Linear_Vel_Cmd_ms': record.linear_velocity_cmd,
-                    'Angular_Vel_Cmd_rads': record.angular_velocity_cmd
-                };
-            });
-            
-            // Create workbook
-            var workbook = XLSX.utils.book_new();
-            
-            // Main data sheet
-            var worksheet = XLSX.utils.json_to_sheet(excelData);
-            
-            // Set column widths
-            worksheet['!cols'] = [
-                { width: 22 },  // Timestamp
-                { width: 12 },  // Time Seconds
-                { width: 15 },  // Excel Date
-                { width: 12 },  // X Position
-                { width: 12 },  // Y Position
-                { width: 12 },  // Velocity
-                { width: 12 },  // Heading
-                { width: 15 },  // Control Mode
-                { width: 15 },  // System State
-                { width: 20 },  // Current Job
-                { width: 12 },  // Job Stage
-                { width: 15 },  // Distance Error
-                { width: 15 },  // Heading Error
-                { width: 15 },  // Linear Vel Cmd
-                { width: 15 }   // Angular Vel Cmd
-            ];
-            
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Robot_Data');
-            
-            // Create summary statistics sheet
-            var stats = calculateExcelStatistics(robotExcelData);
-            var statsSheet = XLSX.utils.json_to_sheet([stats]);
-            XLSX.utils.book_append_sheet(workbook, statsSheet, 'Statistics');
-            
-            // Create control performance analysis sheet
-            var controlAnalysis = analyzeControlPerformance(robotExcelData);
-            if (controlAnalysis.length > 0) {
-                var controlSheet = XLSX.utils.json_to_sheet(controlAnalysis);
-                XLSX.utils.book_append_sheet(workbook, controlSheet, 'Control_Analysis');
-            }
-            
-            // Create job timeline sheet
-            var jobEvents = extractJobEvents(robotExcelData);
-            if (jobEvents.length > 0) {
-                var jobSheet = XLSX.utils.json_to_sheet(jobEvents);
-                XLSX.utils.book_append_sheet(workbook, jobSheet, 'Job_Timeline');
-            }
-            
-            // Create analysis template sheet
-            var analysisTemplate = [
-                { Formula: '=AVERAGE(Robot_Data.E:E)', Description: 'Average Velocity (m/s)', Category: 'Velocity Analysis' },
-                { Formula: '=MAX(Robot_Data.E:E)', Description: 'Maximum Velocity (m/s)', Category: 'Velocity Analysis' },
-                { Formula: '=STDEV(Robot_Data.E:E)', Description: 'Velocity Std Dev (m/s)', Category: 'Velocity Analysis' },
-                { Formula: '=AVERAGE(Robot_Data.L:L)', Description: 'Average Distance Error (m)', Category: 'Control Performance' },
-                { Formula: '=MAX(Robot_Data.L:L)', Description: 'Maximum Distance Error (m)', Category: 'Control Performance' },
-                { Formula: '=AVERAGE(ABS(Robot_Data.M:M))', Description: 'Average Heading Error (deg)', Category: 'Control Performance' },
-                { Formula: '=COUNT(Robot_Data.A:A)', Description: 'Total Data Points', Category: 'General Statistics' },
-                { Formula: '=MAX(Robot_Data.B:B)', Description: 'Total Collection Time (s)', Category: 'General Statistics' }
-            ];
-            var templateSheet = XLSX.utils.json_to_sheet(analysisTemplate);
-            XLSX.utils.book_append_sheet(workbook, templateSheet, 'Excel_Formulas');
-            
-            // Save file
-            var filename = `robot_material_handling_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`;
-            XLSX.writeFile(workbook, filename);
-            
-            logMessage(`📊 Excel file exported: ${filename} (${robotExcelData.length} records)`);
-            alert(`Excel file exported successfully!\n\nFile: ${filename}\nRecords: ${robotExcelData.length}\nSheets: Robot Data, Statistics, Control Analysis, Job Timeline, Excel Formulas`);
-        }
-        
-        function calculateExcelStatistics(data) {
-            if (data.length === 0) return {};
-            
-            var velocities = data.map(d => d.velocity);
-            var xPositions = data.map(d => d.x_position);
-            var yPositions = data.map(d => d.y_position);
-            var distanceErrors = data.map(d => d.distance_error).filter(d => d > 0);
-            var headingErrors = data.map(d => Math.abs(d.heading_error)).filter(d => !isNaN(d));
-            
-            // Calculate total distance traveled
-            var totalDistance = 0;
-            for (var i = 1; i < data.length; i++) {
-                var dx = data[i].x_position - data[i-1].x_position;
-                var dy = data[i].y_position - data[i-1].y_position;
-                totalDistance += Math.sqrt(dx*dx + dy*dy);
-            }
-            
-            // Count job changes
-            var jobChanges = 0;
-            var lastJobStage = data[0].job_stage;
-            for (var i = 1; i < data.length; i++) {
-                if (data[i].job_stage !== lastJobStage) {
-                    jobChanges++;
-                    lastJobStage = data[i].job_stage;
-                }
-            }
-            
-            // Control mode usage
-            var controlModeUsage = {};
-            data.forEach(d => {
-                controlModeUsage[d.control_mode] = (controlModeUsage[d.control_mode] || 0) + 1;
-            });
-            
-            return {
-                'Collection_Start': data[0].timestamp,
-                'Collection_End': data[data.length-1].timestamp,
-                'Total_Data_Points': data.length,
-                'Collection_Duration_s': data[data.length-1].time_seconds,
-                'Total_Distance_m': totalDistance.toFixed(3),
-                'Average_Velocity_ms': (velocities.reduce((a,b) => a+b, 0) / velocities.length).toFixed(3),
-                'Max_Velocity_ms': Math.max(...velocities).toFixed(3),
-                'Min_Velocity_ms': Math.min(...velocities).toFixed(3),
-                'Velocity_StdDev_ms': calculateStandardDeviation(velocities).toFixed(3),
-                'Average_Distance_Error_m': distanceErrors.length > 0 ? (distanceErrors.reduce((a,b) => a+b, 0) / distanceErrors.length).toFixed(3) : 'N/A',
-                'Max_Distance_Error_m': distanceErrors.length > 0 ? Math.max(...distanceErrors).toFixed(3) : 'N/A',
-                'Average_Heading_Error_deg': headingErrors.length > 0 ? (headingErrors.reduce((a,b) => a+b, 0) / headingErrors.length).toFixed(2) : 'N/A',
-                'Max_X_Position_m': Math.max(...xPositions).toFixed(3),
-                'Min_X_Position_m': Math.min(...xPositions).toFixed(3),
-                'Max_Y_Position_m': Math.max(...yPositions).toFixed(3),
-                'Min_Y_Position_m': Math.min(...yPositions).toFixed(3),
-                'Job_Stage_Changes': jobChanges,
-                'Primary_Control_Mode': Object.keys(controlModeUsage).reduce((a, b) => controlModeUsage[a] > controlModeUsage[b] ? a : b)
-            };
-        }
-        
-        function analyzeControlPerformance(data) {
-            var controlModes = [...new Set(data.map(d => d.control_mode))];
-            var analysis = [];
-            
-            controlModes.forEach(mode => {
-                var modeData = data.filter(d => d.control_mode === mode);
-                if (modeData.length < 10) return; // Skip if too few samples
-                
-                var velocities = modeData.map(d => d.velocity);
-                var distanceErrors = modeData.map(d => d.distance_error).filter(d => d > 0);
-                var headingErrors = modeData.map(d => Math.abs(d.heading_error)).filter(d => !isNaN(d));
-                
-                analysis.push({
-                    'Control_Mode': mode,
-                    'Sample_Count': modeData.length,
-                    'Duration_Seconds': modeData[modeData.length-1].time_seconds - modeData[0].time_seconds,
-                    'Average_Velocity': velocities.length > 0 ? (velocities.reduce((a,b) => a+b, 0) / velocities.length).toFixed(3) : 'N/A',
-                    'Average_Distance_Error': distanceErrors.length > 0 ? (distanceErrors.reduce((a,b) => a+b, 0) / distanceErrors.length).toFixed(3) : 'N/A',
-                    'Average_Heading_Error': headingErrors.length > 0 ? (headingErrors.reduce((a,b) => a+b, 0) / headingErrors.length).toFixed(2) : 'N/A',
-                    'Velocity_StdDev': velocities.length > 0 ? calculateStandardDeviation(velocities).toFixed(3) : 'N/A'
-                });
-            });
-            
-            return analysis;
-        }
-        
-        function extractJobEvents(data) {
-            var events = [];
-            var lastJobStage = '';
-            var lastJob = '';
-            
-            data.forEach(record => {
-                if (record.job_stage !== lastJobStage || record.current_job !== lastJob) {
-                    events.push({
-                        'Time_Seconds': record.time_seconds,
-                        'Timestamp': record.timestamp,
-                        'Event_Type': 'Job State Change',
-                        'Job': record.current_job,
-                        'Stage': record.job_stage,
-                        'Robot_Position': `(${record.x_position.toFixed(2)}, ${record.y_position.toFixed(2)})`,
-                        'Control_Mode': record.control_mode
-                    });
-                    lastJobStage = record.job_stage;
-                    lastJob = record.current_job;
-                }
-            });
-            
-            return events;
-        }
-        
-        function calculateStandardDeviation(values) {
-            if (values.length === 0) return 0;
-            var avg = values.reduce((a,b) => a+b, 0) / values.length;
-            var squareDiffs = values.map(value => Math.pow(value - avg, 2));
-            var avgSquareDiff = squareDiffs.reduce((a,b) => a+b, 0) / squareDiffs.length;
-            return Math.sqrt(avgSquareDiff);
         }
         
         // =============================================================================

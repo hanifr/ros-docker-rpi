@@ -43,16 +43,16 @@ def quality_control():
     return render_template('quality_control.html')
 
 @app.route('/material')
-@app.route('/advanced_material_handling.html')
+@app.route('/material_handling.html')
 def material_handling():
     """Material handling system interface"""
     return render_template('material_handling.html')
 
-@app.route('/excel')
-@app.route('/excel_integration.html')
+@app.route('/amh-excel')
+@app.route('/advanced_material_handling.html')
 def excel_integration():
     """Excel integration and data export"""
-    return render_template('excel_integration.html')
+    return render_template('advanced_material_handling.html')
 
 @app.route('/advanced')
 def advanced_control():
@@ -76,7 +76,7 @@ def health():
             "data": True,
             "quality": True,
             "material": True,
-            "excel": True,
+            "amh-excel": True,
             "advanced": True
         }
     })
@@ -106,7 +106,7 @@ def list_interfaces():
         {"id": "data", "name": "Data Logger", "url": "/data", "icon": "📊", "description": "Data collection and analysis"},
         {"id": "quality", "name": "Quality Control", "url": "/quality", "icon": "🔬", "description": "Automated quality inspection"},
         {"id": "material", "name": "Material Handling", "url": "/material", "icon": "📦", "description": "AGV and logistics simulation"},
-        {"id": "excel", "name": "Excel Integration", "url": "/excel", "icon": "📈", "description": "Data export and analysis tools"},
+        {"id": "amh-excel", "name": "Excel Integration", "url": "/amh-excel", "icon": "📈", "description": "Data export and analysis tools"},
         {"id": "advanced", "name": "Advanced Control", "url": "/advanced", "icon": "🚀", "description": "Full-featured control interface"}
     ]
     return jsonify(interfaces)
@@ -264,7 +264,7 @@ def check_template_files():
         'physics_data_logger.html',
         'quality_control.html',
         'material_handling.html',
-        'excel_integration.html'
+        'advanced_material_handling.html'
     ]
     
     templates_dir = os.path.join(app.root_path, 'templates')
@@ -306,7 +306,7 @@ if __name__ == '__main__':
     print("   📊 Data Logger: http://localhost:5000/data")
     print("   🔬 Quality Control: http://localhost:5000/quality")
     print("   📦 Material Handling: http://localhost:5000/material")
-    print("   📈 Excel Integration: http://localhost:5000/excel")
+    print("   📈 Excel Integration: http://localhost:5000/amh-excel")
     print("   🚀 Advanced Control: http://localhost:5000/advanced")
     
     print("\n🔄 Starting server...")
