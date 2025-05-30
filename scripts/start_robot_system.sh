@@ -203,11 +203,9 @@ timeout 5s ros2 topic list 2>/dev/null | head -10 | sed 's/^/  ✓ /' || echo " 
 echo "🤖 Running nodes:"
 timeout 5s ros2 node list 2>/dev/null | sed 's/^/  ✓ /' || echo "  ⚠️ Could not list nodes"
 
-# Test parameter server
-echo "📋 Setting up default physics parameters..."
-ros2 param set /robot max_linear_velocity 0.5 2>/dev/null || echo "  ⚠️ Could not set default parameters"
-ros2 param set /robot max_angular_velocity 1.0 2>/dev/null || true
-ros2 param set /robot mass 15.0 2>/dev/null || true
+# Test parameter server (don't set global parameters - they'll be set by the web interface)
+echo "📋 Parameter server ready for physics tuning..."
+echo "  ℹ️ Parameters will be set via web interface to virtual_robot node"
 
 echo ""
 echo "🎉 Robot system ready!"
