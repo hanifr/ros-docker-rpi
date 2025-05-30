@@ -1,10 +1,10 @@
 #!/bin/bash
-# scripts/start_robot_system.sh - Enhanced with URDF update capability
+# scripts/start_robot_system.sh - Fixed stable version
 
 set -e
 source /opt/ros/humble/setup.bash
 
-echo "🚀 Starting Enhanced Robot System..."
+echo "🚀 Starting Robot System..."
 
 # Build workspace if needed
 if [ -d /workspace/src ] && [ ! -d /workspace/install ]; then
@@ -43,10 +43,7 @@ fi
 echo "🤖 Loading robot URDF from: $ROBOT_URDF_FILE"
 echo "📏 URDF file size: $(du -h "$ROBOT_URDF_FILE" | cut -f1)"
 
-# Make URDF file writable for updates
-chmod 666 "$ROBOT_URDF_FILE"
-
-# Read URDF content
+# Read URDF content and validate
 URDF_CONTENT=$(cat "$ROBOT_URDF_FILE")
 
 if [ -z "$URDF_CONTENT" ]; then
@@ -56,21 +53,19 @@ fi
 
 echo "📝 URDF content length: ${#URDF_CONTENT} characters"
 
-# Function to start robot_state_publisher with URDF
-start_robot_state_publisher() {
-    echo "🔗 Starting robot_state_publisher with URDF file..."
-    URDF_CONTENT=$(cat "$ROBOT_URDF_FILE")
-    ros2 run robot_state_publisher robot_state_publisher --ros-args -p robot_description:="$URDF_CONTENT" &
-    RSP_PID=$!
-    echo "✅ robot_state_publisher started with URDF (PID: $RSP_PID)"
-    return $RSP_PID
-}
+# Validate URDF has basic robot structure
+if ! echo "$URDF_CONTENT" | grep -q "<robot"; then
+    echo "❌ URDF file does not contain valid robot definition"
+    exit 1
+fi
 
-# Start robot_state_publisher
-start_robot_state_publisher
-RSP_PID=$?
+# SOLUTION 1: Start robot_state_publisher with URDF file directly
+echo "🔗 Starting robot_state_publisher with URDF file..."
+ros2 run robot_state_publisher robot_state_publisher --ros-args -p robot_description:="$URDF_CONTENT" &
+RSP_PID=$!
+echo "✅ robot_state_publisher started with URDF (PID: $RSP_PID)"
 
-# Wait for robot_state_publisher to initialize
+# Wait for robot_state_publisher to initialize properly
 sleep 5
 
 # Verify it's running
@@ -88,8 +83,17 @@ import os
 def generate_launch_description():
     # Read URDF content
     urdf_file = os.environ.get('ROBOT_URDF_PATH', '/workspace/src/my_robot_description/urdf/robot.urdf')
-    with open(urdf_file, 'r') as f:
-        robot_description = f.read()
+    
+    try:
+        with open(urdf_file, 'r') as f:
+            robot_description = f.read()
+    except Exception as e:
+        print(f"Error reading URDF file {urdf_file}: {e}")
+        robot_description = ""
+    
+    if not robot_description.strip():
+        print("Error: Empty or invalid URDF content")
+        return LaunchDescription([])
     
     return LaunchDescription([
         Node(
@@ -97,7 +101,8 @@ def generate_launch_description():
             executable='robot_state_publisher',
             name='robot_state_publisher',
             output='screen',
-            parameters=[{'robot_description': robot_description}]
+            parameters=[{'robot_description': robot_description}],
+            arguments=['--ros-args', '--log-level', 'info']
         )
     ])
 EOF
@@ -129,11 +134,11 @@ while [ $counter -lt $timeout ]; do
 done
 
 if [ $counter -eq $timeout ]; then
-    echo "❌ robot_state_publisher not responding"
-    # Continue anyway - don't crash
+    echo "⚠️ robot_state_publisher not responding after ${timeout}s"
+    echo "🔄 Continuing with other services..."
 fi
 
-# Check if robot_description parameter is available
+# Check if robot_description parameter is now available
 echo "🔍 Checking robot_description parameter..."
 if ros2 param list 2>/dev/null | grep -q robot_description; then
     echo "✅ robot_description parameter confirmed"
@@ -159,74 +164,78 @@ echo "✅ ROSBridge started (PID: $ROSBRIDGE_PID)"
 # Wait for ROSBridge to be ready
 sleep 5
 
-# Start URDF Update Service
-echo "🔧 Starting URDF Update Service..."
-python3 /scripts/urdf_update_service.py &
-URDF_SERVICE_PID=$!
-echo "✅ URDF Update Service started (PID: $URDF_SERVICE_PID)"
-
-# Wait for URDF service to start
-sleep 3
+# Verify ROSBridge is working
+echo "🔍 Verifying ROSBridge..."
+if netstat -tuln 2>/dev/null | grep -q ":9090"; then
+    echo "✅ ROSBridge confirmed listening on port 9090"
+else
+    echo "⚠️ ROSBridge may not be listening on port 9090"
+fi
 
 # Start virtual robot
 echo "🎮 Starting virtual robot..."
-python3 /scripts/virtual_robot.py &
-ROBOT_PID=$!
-echo "✅ Virtual robot started (PID: $ROBOT_PID)"
+if [ -f "/scripts/virtual_robot.py" ]; then
+    python3 /scripts/virtual_robot.py &
+    ROBOT_PID=$!
+    echo "✅ Virtual robot started (PID: $ROBOT_PID)"
+else
+    echo "⚠️ Virtual robot script not found at /scripts/virtual_robot.py"
+    ROBOT_PID=""
+fi
 
 echo ""
 echo "✅ All services started!"
 echo "  - robot_state_publisher (PID: $RSP_PID)"
 echo "  - joint_state_publisher (PID: $JSP_PID)" 
 echo "  - rosbridge_server (PID: $ROSBRIDGE_PID)"
-echo "  - urdf_update_service (PID: $URDF_SERVICE_PID)"
-echo "  - virtual_robot (PID: $ROBOT_PID)"
+if [ -n "$ROBOT_PID" ]; then
+    echo "  - virtual_robot (PID: $ROBOT_PID)"
+fi
 
 echo ""
 echo "🔍 Final system verification..."
 
 # Check topics
-echo "📡 Key topics available:"
-ros2 topic list 2>/dev/null | grep -E "(cmd_vel|odom|joint_states|tf)" | head -10 | sed 's/^/  ✓ /' || echo "  ⚠️ Limited topics available"
+echo "📡 Available topics:"
+timeout 5s ros2 topic list 2>/dev/null | head -10 | sed 's/^/  ✓ /' || echo "  ⚠️ Could not list topics"
 
-# Check services
-echo "🔧 Key services available:"
-ros2 service list 2>/dev/null | grep -E "(reload_robot_description)" | sed 's/^/  ✓ /' || echo "  ⚠️ URDF update service not ready"
+# Check nodes
+echo "🤖 Running nodes:"
+timeout 5s ros2 node list 2>/dev/null | sed 's/^/  ✓ /' || echo "  ⚠️ Could not list nodes"
 
-# Check TF
-echo "🔗 TF frames:"
-ros2 run tf2_tools view_frames.py 2>/dev/null &
-sleep 3
-kill %1 2>/dev/null || true
+# Test parameter server
+echo "📋 Setting up default physics parameters..."
+ros2 param set /robot max_linear_velocity 0.5 2>/dev/null || echo "  ⚠️ Could not set default parameters"
+ros2 param set /robot max_angular_velocity 1.0 2>/dev/null || true
+ros2 param set /robot mass 15.0 2>/dev/null || true
 
 echo ""
-echo "🎉 Enhanced Robot system ready!"
+echo "🎉 Robot system ready!"
 echo "🌐 ROSBridge available at: ws://0.0.0.0:9090"
-echo "🔧 URDF Update API available at: http://0.0.0.0:5000"
-echo "🤖 Robot with persistent physics tuning available!"
+echo "🤖 differential_drive_robot should now be visible in web interface!"
 echo ""
-echo "💡 Features available:"
-echo "  - Real-time physics parameter tuning"
-echo "  - Persistent URDF configuration updates"
-echo "  - Dynamic robot description reloading"
-echo "  - Web-based physics testing interface"
+echo "📋 Available interfaces:"
+echo "  - Physics Parameter Tuner with ROS Parameter Server"
+echo "  - Real-time robot control and monitoring"
+echo "  - TF and odometry data streams"
 
-# Create a function to gracefully restart robot_state_publisher
-restart_robot_state_publisher() {
-    echo "🔄 Restarting robot_state_publisher..."
-    
-    # Kill existing
+# Function to handle graceful shutdown
+cleanup() {
+    echo ""
+    echo "🛑 Shutting down robot system..."
     kill $RSP_PID 2>/dev/null || true
-    sleep 2
-    
-    # Restart with updated URDF
-    start_robot_state_publisher
-    RSP_PID=$?
+    kill $JSP_PID 2>/dev/null || true
+    kill $ROSBRIDGE_PID 2>/dev/null || true
+    if [ -n "$ROBOT_PID" ]; then
+        kill $ROBOT_PID 2>/dev/null || true
+    fi
+    echo "✅ Cleanup complete"
+    exit 0
 }
 
-# Export function for use by URDF update service
-export -f restart_robot_state_publisher
-export ROBOT_URDF_FILE
+# Set up signal handlers
+trap cleanup SIGINT SIGTERM
 
 # Keep container running
+echo "📡 System running - press Ctrl+C to stop"
 tail -f /dev/null

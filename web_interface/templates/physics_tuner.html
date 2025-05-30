@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Robot Physics Parameter Tuner - Enhanced</title>
+    <title>Robot Physics Parameter Tuner - Working Version</title>
     <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
     <style>
         .physics-tuner {
@@ -66,8 +66,7 @@
         .test-movement { background: #17a2b8; color: white; }
         .test-physics { background: #28a745; color: white; }
         .reset-params { background: #ffc107; color: black; }
-        .save-urdf { background: #dc3545; color: white; }
-        .load-urdf { background: #6f42c1; color: white; }
+        .publish-params { background: #dc3545; color: white; }
         
         .physics-result {
             background: #d4edda;
@@ -77,36 +76,47 @@
             border-radius: 5px;
         }
         
-        .urdf-status {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            padding: 10px;
-            margin: 10px 0;
+        .status-indicator {
+            padding: 8px 12px;
             border-radius: 5px;
+            margin: 10px 0;
             font-weight: bold;
         }
         
-        .urdf-status.success {
+        .status-connected {
             background: #d4edda;
             border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status-disconnected {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
         }
     </style>
 </head>
 <body>
     <div class="physics-tuner">
-        <h1>🚀 Enhanced Robot Physics Parameter Tuner</h1>
-        <p><em>Real-time physics tuning with URDF persistence</em></p>
+        <h1>🚀 Robot Physics Parameter Tuner</h1>
+        <p><em>Real-time physics tuning via ROS Parameter Server</em></p>
         
-        <!-- URDF Status Panel -->
+        <!-- Connection Status -->
+        <div id="connection-status" class="status-indicator status-disconnected">
+            🔴 Connecting to ROS...
+        </div>
+        
+        <!-- Parameter Publishing Panel -->
         <div class="parameter-panel">
-            <h3>📁 URDF Configuration Status</h3>
-            <div id="urdf-status" class="urdf-status">
-                Loading URDF configuration...
-            </div>
+            <h3>📡 Parameter Server Control</h3>
+            <p>These parameters will be published to the ROS parameter server and can be read by your robot nodes.</p>
             <div>
-                <button class="test-button load-urdf" onclick="loadCurrentParams()">🔄 Load Current URDF</button>
-                <button class="test-button save-urdf" onclick="saveToURDF()">💾 Save to URDF</button>
-                <button class="test-button test-physics" onclick="reloadRobotDescription()">🔃 Reload Robot</button>
+                <button class="test-button publish-params" onclick="publishAllParameters()">📤 Publish to Parameter Server</button>
+                <button class="test-button test-physics" onclick="readParametersFromServer()">📥 Read from Parameter Server</button>
+                <button class="test-button reset-params" onclick="resetToDefaults()">🔄 Reset to Defaults</button>
+            </div>
+            <div id="param-status">
+                <small><em>Parameters not yet published to ROS</em></small>
             </div>
         </div>
         
@@ -119,71 +129,71 @@
                     <label><strong>Max Linear Velocity (m/s)</strong></label>
                     <div class="slider-container">
                         <input type="range" class="param-slider" id="max-linear-vel" 
-                               min="0.1" max="2.0" step="0.1" value="0.5" 
+                               min="0.1" max="3.0" step="0.1" value="0.5" 
                                oninput="updateParameter('max-linear-vel')">
                         <span class="param-value" id="max-linear-vel-value">0.5</span>
                     </div>
-                    <small>Higher = faster movement, lower = more precise control</small>
+                    <small>ROS param: <code>/robot/max_linear_velocity</code></small>
                 </div>
                 
                 <div class="param-control">
                     <label><strong>Max Angular Velocity (rad/s)</strong></label>
                     <div class="slider-container">
                         <input type="range" class="param-slider" id="max-angular-vel" 
-                               min="0.1" max="2.0" step="0.1" value="0.5" 
+                               min="0.1" max="3.0" step="0.1" value="1.0" 
                                oninput="updateParameter('max-angular-vel')">
-                        <span class="param-value" id="max-angular-vel-value">0.5</span>
+                        <span class="param-value" id="max-angular-vel-value">1.0</span>
                     </div>
-                    <small>Higher = faster turning, affects stability</small>
+                    <small>ROS param: <code>/robot/max_angular_velocity</code></small>
                 </div>
                 
                 <div class="param-control">
-                    <label><strong>Acceleration Ramp (smoothness)</strong></label>
+                    <label><strong>Acceleration Limit (m/s²)</strong></label>
                     <div class="slider-container">
-                        <input type="range" class="param-slider" id="acceleration-ramp" 
-                               min="0.1" max="1.0" step="0.05" value="0.2" 
-                               oninput="updateParameter('acceleration-ramp')">
-                        <span class="param-value" id="acceleration-ramp-value">0.2</span>
+                        <input type="range" class="param-slider" id="acceleration-limit" 
+                               min="0.1" max="2.0" step="0.1" value="1.0" 
+                               oninput="updateParameter('acceleration-limit')">
+                        <span class="param-value" id="acceleration-limit-value">1.0</span>
                     </div>
-                    <small>Lower = smoother start/stop, higher = more responsive</small>
+                    <small>ROS param: <code>/robot/acceleration_limit</code></small>
                 </div>
             </div>
             
-            <!-- Physics Simulation Parameters -->
+            <!-- Physics Properties -->
             <div class="parameter-panel">
                 <h3>⚙️ Physics Properties</h3>
                 
                 <div class="param-control">
-                    <label><strong>Simulated Mass (kg)</strong></label>
+                    <label><strong>Robot Mass (kg)</strong></label>
                     <div class="slider-container">
                         <input type="range" class="param-slider" id="robot-mass" 
-                               min="1" max="50" step="1" value="10" 
+                               min="1" max="100" step="1" value="15" 
                                oninput="updateParameter('robot-mass')">
-                        <span class="param-value" id="robot-mass-value">10</span>
+                        <span class="param-value" id="robot-mass-value">15</span>
                     </div>
-                    <small>Affects acceleration and momentum (updates URDF)</small>
+                    <small>ROS param: <code>/robot/mass</code></small>
                 </div>
                 
                 <div class="param-control">
                     <label><strong>Wheel Friction Coefficient</strong></label>
                     <div class="slider-container">
                         <input type="range" class="param-slider" id="friction-coeff" 
-                               min="0.1" max="1.5" step="0.1" value="0.8" 
+                               min="0.1" max="2.0" step="0.1" value="1.0" 
                                oninput="updateParameter('friction-coeff')">
-                        <span class="param-value" id="friction-coeff-value">0.8</span>
+                        <span class="param-value" id="friction-coeff-value">1.0</span>
                     </div>
-                    <small>Higher = better grip, lower = more sliding (updates URDF)</small>
+                    <small>ROS param: <code>/robot/wheel_friction</code></small>
                 </div>
                 
                 <div class="param-control">
                     <label><strong>Damping Factor</strong></label>
                     <div class="slider-container">
                         <input type="range" class="param-slider" id="damping-factor" 
-                               min="0.0" max="1.0" step="0.05" value="0.1" 
+                               min="0.0" max="1.0" step="0.05" value="0.2" 
                                oninput="updateParameter('damping-factor')">
-                        <span class="param-value" id="damping-factor-value">0.1</span>
+                        <span class="param-value" id="damping-factor-value">0.2</span>
                     </div>
-                    <small>Higher = faster stopping, lower = coasts longer (updates URDF)</small>
+                    <small>ROS param: <code>/robot/damping_factor</code></small>
                 </div>
             </div>
         </div>
@@ -192,21 +202,23 @@
         <div class="parameter-panel">
             <h3>🧪 Physics Testing</h3>
             <div>
-                <button class="test-button test-movement" onclick="testLinearMovement()">Test Linear Movement</button>
-                <button class="test-button test-movement" onclick="testAngularMovement()">Test Turning</button>
-                <button class="test-button test-physics" onclick="testAcceleration()">Test Acceleration</button>
-                <button class="test-button test-physics" onclick="testDeceleration()">Test Stopping</button>
-                <button class="test-button reset-params" onclick="resetToDefaults()">Reset to Defaults</button>
+                <button class="test-button test-movement" onclick="testLinearMovement()">🏃 Test Linear Movement</button>
+                <button class="test-button test-movement" onclick="testAngularMovement()">🔄 Test Turning</button>
+                <button class="test-button test-physics" onclick="testAcceleration()">⚡ Test Acceleration</button>
+                <button class="test-button test-physics" onclick="testDeceleration()">🛑 Test Stopping</button>
+                <button class="test-button test-physics" onclick="emergencyStop()">🚨 Emergency Stop</button>
             </div>
             
             <div id="test-results">
-                <!-- Test results will appear here -->
+                <div class="physics-result">
+                    <strong>Ready for testing</strong> - Adjust parameters above and click test buttons
+                </div>
             </div>
         </div>
         
         <!-- Real-time Status -->
         <div class="parameter-panel">
-            <h3>📊 Real-time Physics Status</h3>
+            <h3>📊 Real-time Robot Status</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                 <div>
                     <strong>Current Velocity:</strong><br>
@@ -219,31 +231,62 @@
                     Y: <span id="current-y">0.00</span> m
                 </div>
                 <div>
-                    <strong>Physics Quality:</strong><br>
-                    URDF Status: <span id="urdf-sync-status">Synced</span><br>
-                    Last Update: <span id="last-update">Never</span>
+                    <strong>System Status:</strong><br>
+                    ROS Connection: <span id="ros-status">❌</span><br>
+                    Last Command: <span id="last-command">None</span>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Parameter Summary -->
+        <div class="parameter-panel">
+            <h3>📋 Current Parameter Summary</h3>
+            <div id="parameter-summary" style="font-family: monospace; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+                <!-- Parameter summary will be populated here -->
             </div>
         </div>
     </div>
 
     <script>
-        // Connect to ROS
+        // ROS connection
         var ros = new ROSLIB.Ros({
             url: 'ws://' + window.location.hostname + ':9090'
+        });
+        
+        // Connection status handling
+        ros.on('connection', function() {
+            console.log('Connected to ROS!');
+            document.getElementById('connection-status').className = 'status-indicator status-connected';
+            document.getElementById('connection-status').innerHTML = '🟢 Connected to ROS';
+            document.getElementById('ros-status').textContent = '✅';
+            
+            // Try to read existing parameters
+            setTimeout(readParametersFromServer, 1000);
+        });
+        
+        ros.on('error', function(error) {
+            console.log('ROS connection error: ', error);
+            document.getElementById('connection-status').className = 'status-indicator status-disconnected';
+            document.getElementById('connection-status').innerHTML = '🔴 ROS Connection Error';
+            document.getElementById('ros-status').textContent = '❌';
+        });
+        
+        ros.on('close', function() {
+            console.log('ROS connection closed');
+            document.getElementById('connection-status').className = 'status-indicator status-disconnected';
+            document.getElementById('connection-status').innerHTML = '🟡 ROS Connection Closed';
+            document.getElementById('ros-status').textContent = '⚠️';
         });
         
         // Current physics parameters
         var physicsParams = {
             maxLinearVel: 0.5,
-            maxAngularVel: 0.5,
-            accelerationRamp: 0.2,
-            robotMass: 10,
-            frictionCoeff: 0.8,
-            dampingFactor: 0.1
+            maxAngularVel: 1.0,
+            accelerationLimit: 1.0,
+            robotMass: 15,
+            frictionCoeff: 1.0,
+            dampingFactor: 0.2
         };
-        
-        var parametersDirty = false; // Track if params differ from URDF
         
         // ROS topics
         var cmdVel = new ROSLIB.Topic({
@@ -260,16 +303,20 @@
         
         // Monitor robot state
         odomSubscriber.subscribe(function(message) {
-            var linearVel = Math.sqrt(
-                Math.pow(message.twist.twist.linear.x, 2) + 
-                Math.pow(message.twist.twist.linear.y, 2)
-            );
-            var angularVel = Math.abs(message.twist.twist.angular.z);
-            
-            document.getElementById('current-linear').textContent = linearVel.toFixed(3);
-            document.getElementById('current-angular').textContent = angularVel.toFixed(3);
-            document.getElementById('current-x').textContent = message.pose.pose.position.x.toFixed(3);
-            document.getElementById('current-y').textContent = message.pose.pose.position.y.toFixed(3);
+            try {
+                var linearVel = Math.sqrt(
+                    Math.pow(message.twist.twist.linear.x, 2) + 
+                    Math.pow(message.twist.twist.linear.y, 2)
+                );
+                var angularVel = Math.abs(message.twist.twist.angular.z);
+                
+                document.getElementById('current-linear').textContent = linearVel.toFixed(3);
+                document.getElementById('current-angular').textContent = angularVel.toFixed(3);
+                document.getElementById('current-x').textContent = message.pose.pose.position.x.toFixed(3);
+                document.getElementById('current-y').textContent = message.pose.pose.position.y.toFixed(3);
+            } catch (e) {
+                console.log('Error processing odometry:', e);
+            }
         });
         
         function updateParameter(paramId) {
@@ -287,176 +334,163 @@
                 case 'max-angular-vel':
                     physicsParams.maxAngularVel = value;
                     break;
-                case 'acceleration-ramp':
-                    physicsParams.accelerationRamp = value;
+                case 'acceleration-limit':
+                    physicsParams.accelerationLimit = value;
                     break;
                 case 'robot-mass':
                     physicsParams.robotMass = value;
-                    parametersDirty = true;
                     break;
                 case 'friction-coeff':
                     physicsParams.frictionCoeff = value;
-                    parametersDirty = true;
                     break;
                 case 'damping-factor':
                     physicsParams.dampingFactor = value;
-                    parametersDirty = true;
                     break;
             }
             
-            updateURDFStatus();
-            console.log('Updated physics parameter:', paramId, '=', value);
+            updateParameterSummary();
+            console.log('Updated parameter:', paramId, '=', value);
         }
         
-        function updateURDFStatus() {
-            var statusElement = document.getElementById('urdf-sync-status');
-            if (parametersDirty) {
-                statusElement.textContent = 'Needs Sync';
-                statusElement.style.color = '#dc3545';
-            } else {
-                statusElement.textContent = 'Synced';
-                statusElement.style.color = '#28a745';
-            }
+        function updateParameterSummary() {
+            var summary = `
+Robot Physics Parameters:
+├─ Motion
+│  ├─ Max Linear Velocity: ${physicsParams.maxLinearVel} m/s
+│  ├─ Max Angular Velocity: ${physicsParams.maxAngularVel} rad/s
+│  └─ Acceleration Limit: ${physicsParams.accelerationLimit} m/s²
+│
+└─ Physics
+   ├─ Mass: ${physicsParams.robotMass} kg
+   ├─ Wheel Friction: ${physicsParams.frictionCoeff}
+   └─ Damping Factor: ${physicsParams.dampingFactor}
+            `.trim();
+            
+            document.getElementById('parameter-summary').textContent = summary;
         }
         
-        function loadCurrentParams() {
-            addTestResult('Loading current URDF parameters...');
+        function publishAllParameters() {
+            addTestResult('Publishing all parameters to ROS Parameter Server...');
             
-            fetch('/get_current_params')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Update sliders with URDF values
-                        if (data.params.robotMass) {
-                            document.getElementById('robot-mass').value = data.params.robotMass;
-                            updateParameter('robot-mass');
-                        }
-                        if (data.params.frictionCoeff) {
-                            document.getElementById('friction-coeff').value = data.params.frictionCoeff;
-                            updateParameter('friction-coeff');
-                        }
-                        if (data.params.dampingFactor) {
-                            document.getElementById('damping-factor').value = data.params.dampingFactor;
-                            updateParameter('damping-factor');
-                        }
-                        
-                        parametersDirty = false;
-                        updateURDFStatus();
-                        
-                        var statusDiv = document.getElementById('urdf-status');
-                        statusDiv.className = 'urdf-status success';
-                        statusDiv.textContent = 'URDF parameters loaded successfully';
-                        
-                        addTestResult('URDF parameters loaded from file');
-                        document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
-                    } else {
-                        throw new Error(data.message);
-                    }
-                })
-                .catch(error => {
-                    var statusDiv = document.getElementById('urdf-status');
-                    statusDiv.className = 'urdf-status';
-                    statusDiv.textContent = 'Error loading URDF: ' + error.message;
-                    addTestResult('Failed to load URDF parameters: ' + error.message);
-                });
-        }
-        
-        function saveToURDF() {
-            addTestResult('Saving parameters to URDF file...');
-            
-            var urdfParams = {
-                robotMass: physicsParams.robotMass,
-                frictionCoeff: physicsParams.frictionCoeff,
-                dampingFactor: physicsParams.dampingFactor,
-                maxLinearVel: physicsParams.maxLinearVel,
-                maxAngularVel: physicsParams.maxAngularVel
-            };
-            
-            fetch('/update_physics_params', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(urdfParams)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    parametersDirty = false;
-                    updateURDFStatus();
-                    
-                    var statusDiv = document.getElementById('urdf-status');
-                    statusDiv.className = 'urdf-status success';
-                    statusDiv.textContent = 'URDF updated and robot reloaded successfully!';
-                    
-                    addTestResult('Parameters saved to URDF and robot reloaded');
-                    document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
-                } else {
-                    throw new Error(data.message);
-                }
-            })
-            .catch(error => {
-                var statusDiv = document.getElementById('urdf-status');
-                statusDiv.className = 'urdf-status';
-                statusDiv.textContent = 'Error saving to URDF: ' + error.message;
-                addTestResult('Failed to save to URDF: ' + error.message);
-            });
-        }
-        
-        function reloadRobotDescription() {
-            addTestResult('Reloading robot description...');
-            
-            // Call ROS service to reload robot description
-            var reloadService = new ROSLIB.Service({
+            // Create parameter client
+            var paramClient = new ROSLIB.Param({
                 ros: ros,
-                name: '/reload_robot_description',
-                serviceType: 'std_srvs/SetBool'
+                name: '/robot/physics_params'
             });
             
-            var request = new ROSLIB.ServiceRequest({
-                data: true
-            });
+            // Publish individual parameters
+            var params = [
+                {name: '/robot/max_linear_velocity', value: physicsParams.maxLinearVel},
+                {name: '/robot/max_angular_velocity', value: physicsParams.maxAngularVel},
+                {name: '/robot/acceleration_limit', value: physicsParams.accelerationLimit},
+                {name: '/robot/mass', value: physicsParams.robotMass},
+                {name: '/robot/wheel_friction', value: physicsParams.frictionCoeff},
+                {name: '/robot/damping_factor', value: physicsParams.dampingFactor}
+            ];
             
-            reloadService.callService(request, function(result) {
-                if (result.success) {
-                    addTestResult('Robot description reloaded successfully');
-                    var statusDiv = document.getElementById('urdf-status');
-                    statusDiv.className = 'urdf-status success';
-                    statusDiv.textContent = 'Robot description reloaded from URDF';
-                } else {
-                    addTestResult('Failed to reload robot description: ' + result.message);
-                }
+            var publishCount = 0;
+            var totalParams = params.length;
+            
+            params.forEach(function(param) {
+                var rosParam = new ROSLIB.Param({
+                    ros: ros,
+                    name: param.name
+                });
+                
+                rosParam.set(param.value, function(result) {
+                    publishCount++;
+                    console.log('Published parameter:', param.name, '=', param.value);
+                    
+                    if (publishCount === totalParams) {
+                        addTestResult(`✅ Successfully published ${totalParams} parameters to ROS`);
+                        document.getElementById('param-status').innerHTML = 
+                            '<small><em>✅ Parameters published to ROS Parameter Server</em></small>';
+                        document.getElementById('last-command').textContent = 'Publish Params';
+                    }
+                });
             });
         }
         
-        // Rest of the existing functions (testLinearMovement, etc.)
+        function readParametersFromServer() {
+            addTestResult('Reading parameters from ROS Parameter Server...');
+            
+            var params = [
+                {name: '/robot/max_linear_velocity', id: 'max-linear-vel'},
+                {name: '/robot/max_angular_velocity', id: 'max-angular-vel'},
+                {name: '/robot/acceleration_limit', id: 'acceleration-limit'},
+                {name: '/robot/mass', id: 'robot-mass'},
+                {name: '/robot/wheel_friction', id: 'friction-coeff'},
+                {name: '/robot/damping_factor', id: 'damping-factor'}
+            ];
+            
+            var readCount = 0;
+            var foundParams = 0;
+            
+            params.forEach(function(param) {
+                var rosParam = new ROSLIB.Param({
+                    ros: ros,
+                    name: param.name
+                });
+                
+                rosParam.get(function(value) {
+                    readCount++;
+                    if (value !== null && value !== undefined) {
+                        foundParams++;
+                        // Update slider
+                        document.getElementById(param.id).value = value;
+                        updateParameter(param.id);
+                        console.log('Read parameter:', param.name, '=', value);
+                    }
+                    
+                    if (readCount === params.length) {
+                        if (foundParams > 0) {
+                            addTestResult(`✅ Read ${foundParams} parameters from ROS Parameter Server`);
+                        } else {
+                            addTestResult('⚠️ No parameters found on ROS Parameter Server');
+                        }
+                        document.getElementById('last-command').textContent = 'Read Params';
+                    }
+                }, function(error) {
+                    readCount++;
+                    console.log('Parameter not found:', param.name);
+                    
+                    if (readCount === params.length) {
+                        addTestResult('⚠️ Some parameters not found on server - using current values');
+                        document.getElementById('last-command').textContent = 'Read Params';
+                    }
+                });
+            });
+        }
+        
         function testLinearMovement() {
-            addTestResult('Testing linear movement with current parameters...');
+            addTestResult(`Testing linear movement at ${physicsParams.maxLinearVel} m/s...`);
             
             var twist = new ROSLIB.Message({
                 linear: { x: physicsParams.maxLinearVel, y: 0, z: 0 },
                 angular: { x: 0, y: 0, z: 0 }
             });
             cmdVel.publish(twist);
+            document.getElementById('last-command').textContent = 'Linear Test';
             
             setTimeout(function() {
                 stopRobot();
-                addTestResult(`Linear test complete. Max velocity: ${physicsParams.maxLinearVel} m/s`);
+                addTestResult(`✅ Linear test complete. Max velocity: ${physicsParams.maxLinearVel} m/s`);
             }, 3000);
         }
         
         function testAngularMovement() {
-            addTestResult('Testing angular movement with current parameters...');
+            addTestResult(`Testing angular movement at ${physicsParams.maxAngularVel} rad/s...`);
             
             var twist = new ROSLIB.Message({
                 linear: { x: 0, y: 0, z: 0 },
                 angular: { x: 0, y: 0, z: physicsParams.maxAngularVel }
             });
             cmdVel.publish(twist);
+            document.getElementById('last-command').textContent = 'Angular Test';
             
             setTimeout(function() {
                 stopRobot();
-                addTestResult(`Angular test complete. Max angular velocity: ${physicsParams.maxAngularVel} rad/s`);
+                addTestResult(`✅ Angular test complete. Max angular velocity: ${physicsParams.maxAngularVel} rad/s`);
             }, 2000);
         }
         
@@ -464,13 +498,16 @@
             addTestResult('Testing acceleration profile...');
             
             var targetVel = physicsParams.maxLinearVel;
-            var rampTime = physicsParams.accelerationRamp * 5;
+            var accelLimit = physicsParams.accelerationLimit;
+            var timeToTarget = targetVel / accelLimit; // Time to reach max velocity
             var steps = 20;
-            var stepTime = (rampTime * 1000) / steps;
+            var stepTime = (timeToTarget * 1000) / steps;
             var velIncrement = targetVel / steps;
             
             var currentVel = 0;
             var step = 0;
+            
+            document.getElementById('last-command').textContent = 'Accel Test';
             
             var accelInterval = setInterval(function() {
                 currentVel = Math.min(currentVel + velIncrement, targetVel);
@@ -486,7 +523,7 @@
                     clearInterval(accelInterval);
                     setTimeout(function() {
                         stopRobot();
-                        addTestResult(`Acceleration test complete. Ramp time: ${rampTime.toFixed(1)}s`);
+                        addTestResult(`✅ Acceleration test complete. Time to max speed: ${timeToTarget.toFixed(1)}s`);
                     }, 1000);
                 }
             }, stepTime);
@@ -495,33 +532,45 @@
         function testDeceleration() {
             addTestResult('Testing deceleration and stopping...');
             
+            // First accelerate to full speed
             var twist = new ROSLIB.Message({
                 linear: { x: physicsParams.maxLinearVel, y: 0, z: 0 },
                 angular: { x: 0, y: 0, z: 0 }
             });
             cmdVel.publish(twist);
+            document.getElementById('last-command').textContent = 'Decel Test';
             
             setTimeout(function() {
                 stopRobot();
-                var dampingTime = (1 - physicsParams.dampingFactor) * 3;
-                addTestResult(`Deceleration test complete. Estimated stopping time: ${dampingTime.toFixed(1)}s`);
-            }, 1000);
+                var stoppingTime = physicsParams.maxLinearVel / physicsParams.accelerationLimit;
+                var dampingEffect = (1 - physicsParams.dampingFactor) * 2;
+                var totalStopTime = stoppingTime + dampingEffect;
+                
+                addTestResult(`✅ Deceleration test complete. Estimated stopping time: ${totalStopTime.toFixed(1)}s`);
+            }, 1500);
+        }
+        
+        function emergencyStop() {
+            stopRobot();
+            addTestResult('🚨 Emergency stop activated');
+            document.getElementById('last-command').textContent = 'Emergency Stop';
         }
         
         function resetToDefaults() {
             document.getElementById('max-linear-vel').value = 0.5;
-            document.getElementById('max-angular-vel').value = 0.5;
-            document.getElementById('acceleration-ramp').value = 0.2;
-            document.getElementById('robot-mass').value = 10;
-            document.getElementById('friction-coeff').value = 0.8;
-            document.getElementById('damping-factor').value = 0.1;
+            document.getElementById('max-angular-vel').value = 1.0;
+            document.getElementById('acceleration-limit').value = 1.0;
+            document.getElementById('robot-mass').value = 15;
+            document.getElementById('friction-coeff').value = 1.0;
+            document.getElementById('damping-factor').value = 0.2;
             
-            ['max-linear-vel', 'max-angular-vel', 'acceleration-ramp', 
+            ['max-linear-vel', 'max-angular-vel', 'acceleration-limit', 
              'robot-mass', 'friction-coeff', 'damping-factor'].forEach(function(id) {
                 updateParameter(id);
             });
             
             addTestResult('Parameters reset to default values');
+            document.getElementById('last-command').textContent = 'Reset';
         }
         
         function stopRobot() {
@@ -540,19 +589,20 @@
             resultElement.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
             resultsDiv.appendChild(resultElement);
             
+            // Keep only last 5 results
             while (resultsDiv.children.length > 5) {
                 resultsDiv.removeChild(resultsDiv.firstChild);
             }
         }
         
-        // Initialize
-        ['max-linear-vel', 'max-angular-vel', 'acceleration-ramp', 
+        // Initialize all parameter displays
+        ['max-linear-vel', 'max-angular-vel', 'acceleration-limit', 
          'robot-mass', 'friction-coeff', 'damping-factor'].forEach(function(id) {
             updateParameter(id);
         });
         
-        // Load current URDF parameters on startup
-        setTimeout(loadCurrentParams, 1000);
+        // Update parameter summary on startup
+        updateParameterSummary();
     </script>
 </body>
 </html>
