@@ -1,20 +1,14 @@
-# Gazebo-ros-docker on Raspberry Pi 4B
+# Gazebo-ros-docker on Raspberry Pi 4B for Ubuntu 24.04.2 LTS
 
-
-**✅ Add Pi-Specific Scripts:**
+# Initial Setup on Raspberry PI
 ```bash
-# setup PI
-#!/bin/bash
-./init.sh
-
-# After completion, test everything:
-./scripts/test_docker_setup.sh
-
-# Get quick start guide:
-./scripts/quick_start.sh
+sudo apt-get update && apt-get upgrade
 ```
 
-## 🔧 Complete Pi-Optimized Setup
+# Clone the git repository
+```bash
+git clone https://github.com/hanifr/ros-docker-rpi.git
+```
 
 ### Directory Structure
 ```
@@ -439,40 +433,6 @@ volumes:
     driver: local
 ```
 
-### Updated Scripts
-
-**`scripts/run_headless_sim.sh`:**
-```bash
-#!/bin/bash
-echo "Starting headless Gazebo simulation on Pi..."
-
-# Check Pi temperature
-TEMP=$(vcgencmd measure_temp | cut -d= -f2)
-echo "Pi Temperature: $TEMP"
-
-# Start containers
-docker-compose -f docker-compose.pi.yml up -d
-
-echo "Simulation started!"
-echo "Access web interface at: http://$(hostname -I | awk '{print $1}'):3000"
-echo "ROS Bridge at: ws://$(hostname -I | awk '{print $1}'):9090"
-```
-
-**`scripts/monitor_pi_resources.sh`:**
-```bash
-#!/bin/bash
-echo "=== Pi Resource Monitor ==="
-while true; do
-    clear
-    echo "Temperature: $(vcgencmd measure_temp)"
-    echo "CPU: $(top -bn1 | grep "Cpu(s)" | awk '{print $2}')"
-    echo "Memory: $(free -h | awk 'NR==2{printf "%.1f%%", $3*100/$2}')"
-    echo "Docker Stats:"
-    docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
-    sleep 2
-done
-```
-
 
 Steps
 # Check the file structure
@@ -482,7 +442,12 @@ tree -L 3
 
 # Run Pi setup (installs Docker, ROS, etc.)
 ```bash
-./scripts/pi_setup.sh
+./scripts/init.sh
+# After completion, test everything:
+./scripts/test_docker_setup.sh
+
+# Get quick start guide:
+./scripts/quick_start.sh
 ```
 # Start web interface (creates web_interface/ directory)
 ```bash
@@ -537,3 +502,22 @@ docker-compose -f docker-compose.pi.yml build --no-cache gazebo-sim
 ```bash
 sudo chmod +x *.sh *.py
 ```
+
+# check OS details
+```bash
+cat /etc/os-release
+```
+
+PRETTY_NAME="Ubuntu 24.04.2 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.2 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
