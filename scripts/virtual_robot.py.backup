@@ -1,0 +1,288 @@
+#!/usr/bin/env python3
+"""
+Virtual differential drive robot simulation with MATLAB-style physics dynamics
+This script simulates a differential drive robot using ROS 2, with physics-based dynamics
+and torque control, similar to MATLAB's approach.
+This script is designed to run in a ROS 2 environment and requires the following packages:
+- geometry_msgs
+- nav_msgs
+- sensor_msgs
+- std_msgs
+- tf2_ros
+It simulates a robot with two wheels, allowing for torque-based control and dynamic payload handling.
+
+J_r = (m*r²/4) + (I*r²/L²)
+J_l = J_r  
+J_rl = (m*r²/4) - (I*r²/L²)
+
+[ω̇_r]     1     [J_l  -J_rl] [τ_r - f_r*ω_r]
+[ω̇_l] = ----- * [-J_rl  J_r] [τ_l - f_l*ω_l]
+        det(J)
+"""
+
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist, TransformStamped
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Float64MultiArray
+from tf2_ros import TransformBroadcaster
+import math
+import time
+import numpy as np
+
+class PhysicsVirtualRobot(Node):
+    def __init__(self):
+        super().__init__('physics_virtual_robot')
+        
+        # Subscriptions - NOW TORQUE-BASED!
+        self.torque_sub = self.create_subscription(
+            Float64MultiArray, 'torque_cmd', self.torque_callback, 10)
+        self.payload_sub = self.create_subscription(
+            Float64MultiArray, 'payload', self.payload_callback, 10)
+        
+        # Keep cmd_vel for backward compatibility (but will be converted to torque)
+        self.cmd_vel_sub = self.create_subscription(
+            Twist, 'cmd_vel', self.cmd_vel_callback, 10)
+        
+        # Publishers
+        self.odom_pub = self.create_publisher(Odometry, 'odom', 10)
+        self.joint_pub = self.create_publisher(JointState, 'joint_states', 10)
+        self.velocity_pub = self.create_publisher(Twist, 'actual_velocity', 10)
+        
+        # TF broadcaster
+        self.tf_broadcaster = TransformBroadcaster(self)
+        
+        # Robot pose
+        self.x = 0.0
+        self.y = 0.0
+        self.theta = 0.0
+        
+        # PHYSICS PARAMETERS (like MATLAB)
+        self.mass = 5.0              # kg
+        self.inertia = 0.5           # kg*m²
+        self.wheel_radius = 0.1      # m
+        self.wheel_base = 0.35       # m
+        self.friction_left = 0.1     # N*m*s/rad
+        self.friction_right = 0.1    # N*m*s/rad
+        
+        # Dynamic parameters (change with payload)
+        self.payload_mass = 0.0
+        self.payload_inertia = 0.0
+        self.effective_mass = self.mass
+        self.effective_inertia = self.inertia
+        
+        # PHYSICS STATE (like MATLAB)
+        self.wheel_vel_left = 0.0    # rad/s
+        self.wheel_vel_right = 0.0   # rad/s
+        self.wheel_pos_left = 0.0    # rad
+        self.wheel_pos_right = 0.0   # rad
+        
+        # Control inputs
+        self.torque_left = 0.0       # N*m
+        self.torque_right = 0.0      # N*m
+        
+        # Computed inertia matrix
+        self.update_inertia_matrix()
+        
+        # Timer - higher frequency for physics
+        self.timer = self.create_timer(0.01, self.physics_update)  # 100Hz
+        self.last_time = time.time()
+        
+        # Declare parameters for dynamic tuning
+        self.declare_parameter('robot_mass', self.mass)
+        self.declare_parameter('robot_inertia', self.inertia)
+        self.declare_parameter('wheel_friction', self.friction_left)
+        
+        self.get_logger().info('🔧 Physics-based virtual robot started!')
+        self.get_logger().info(f'📊 Mass: {self.mass} kg, Inertia: {self.inertia} kg*m²')
+    
+    def update_inertia_matrix(self):
+        """Update inertia matrix like MATLAB code"""
+        r = self.wheel_radius
+        L = self.wheel_base
+        
+        self.J_r = (self.effective_mass * r * r / 4.0) + \
+                   (self.effective_inertia * r * r / (L * L))
+        self.J_l = self.J_r
+        self.J_rl = (self.effective_mass * r * r / 4.0) - \
+                    (self.effective_inertia * r * r / (L * L))
+        
+        self.det_J = self.J_r * self.J_l - self.J_rl * self.J_rl
+        
+        if abs(self.det_J) < 1e-10:
+            self.get_logger().warn("⚠️ Singular inertia matrix!")
+            self.det_J = 1e-10
+    
+    def torque_callback(self, msg):
+        """Direct torque control (like MATLAB)"""
+        if len(msg.data) >= 2:
+            self.torque_left = msg.data[0]
+            self.torque_right = msg.data[1]
+            
+    def cmd_vel_callback(self, msg):
+        """Convert velocity commands to torques for backward compatibility"""
+        # Simple conversion: velocity error to torque
+        target_linear = msg.linear.x
+        target_angular = msg.angular.z
+        
+        # Convert to wheel velocities
+        target_left = (target_linear - target_angular * self.wheel_base / 2.0) / self.wheel_radius
+        target_right = (target_linear + target_angular * self.wheel_base / 2.0) / self.wheel_radius
+        
+        # Simple P control to convert to torques
+        kp = 2.0
+        self.torque_left = kp * (target_left - self.wheel_vel_left)
+        self.torque_right = kp * (target_right - self.wheel_vel_right)
+    
+    def payload_callback(self, msg):
+        """Handle payload changes (like MATLAB pickup/drop)"""
+        if len(msg.data) >= 2:
+            self.payload_mass = msg.data[0]
+            self.payload_inertia = msg.data[1]
+            
+            # Update effective parameters
+            self.effective_mass = self.mass + self.payload_mass
+            self.effective_inertia = self.inertia + self.payload_inertia
+            
+            # Recalculate inertia matrix
+            self.update_inertia_matrix()
+            
+            if self.payload_mass > 0:
+                self.get_logger().info(f'📦 Payload added: {self.payload_mass:.2f} kg, {self.payload_inertia:.3f} kg*m²')
+            else:
+                self.get_logger().info('📤 Payload removed')
+    
+    def physics_update(self):
+        """MATLAB-style physics update"""
+        current_time = time.time()
+        dt = current_time - self.last_time
+        self.last_time = current_time
+        
+        # Get current parameters (for dynamic tuning)
+        try:
+            new_mass = self.get_parameter('robot_mass').value
+            new_inertia = self.get_parameter('robot_inertia').value
+            new_friction = self.get_parameter('wheel_friction').value
+            
+            if abs(new_mass - self.mass) > 0.01 or abs(new_inertia - self.inertia) > 0.001:
+                self.mass = new_mass
+                self.inertia = new_inertia
+                self.friction_left = new_friction
+                self.friction_right = new_friction
+                self.effective_mass = self.mass + self.payload_mass
+                self.effective_inertia = self.inertia + self.payload_inertia
+                self.update_inertia_matrix()
+                self.get_logger().info(f'🔧 Parameters updated: Mass={self.mass:.2f}, Inertia={self.inertia:.3f}')
+        except:
+            pass  # Parameters not changed
+        
+        # MATLAB-STYLE DYNAMICS EQUATIONS
+        # Friction torques
+        friction_torque_left = self.friction_left * self.wheel_vel_left
+        friction_torque_right = self.friction_right * self.wheel_vel_right
+        
+        # Net torques
+        net_torque_left = self.torque_left - friction_torque_left
+        net_torque_right = self.torque_right - friction_torque_right
+        
+        # Solve inertia matrix equation (like MATLAB)
+        if abs(self.det_J) > 1e-10:
+            # [omega_dot_r]   1     [J_l  -J_rl] [net_torque_r]
+            # [omega_dot_l] = --- * [-J_rl  J_r] [net_torque_l]
+            #                det_J
+            
+            omega_dot_right = ((self.J_l * net_torque_right - self.J_rl * net_torque_left) / self.det_J)
+            omega_dot_left = ((self.J_r * net_torque_left - self.J_rl * net_torque_right) / self.det_J)
+            
+            # Integrate accelerations to get velocities (like MATLAB)
+            self.wheel_vel_right += omega_dot_right * dt
+            self.wheel_vel_left += omega_dot_left * dt
+        
+        # Update wheel positions
+        self.wheel_pos_left += self.wheel_vel_left * dt
+        self.wheel_pos_right += self.wheel_vel_right * dt
+        
+        # Forward kinematics (like MATLAB)
+        linear_vel = self.wheel_radius * (self.wheel_vel_right + self.wheel_vel_left) / 2.0
+        angular_vel = self.wheel_radius * (self.wheel_vel_right - self.wheel_vel_left) / self.wheel_base
+        
+        # Integrate robot pose
+        if abs(angular_vel) < 1e-6:
+            self.x += linear_vel * math.cos(self.theta) * dt
+            self.y += linear_vel * math.sin(self.theta) * dt
+        else:
+            radius = linear_vel / angular_vel
+            dtheta = angular_vel * dt
+            self.x += radius * (math.sin(self.theta + dtheta) - math.sin(self.theta))
+            self.y += radius * (math.cos(self.theta) - math.cos(self.theta + dtheta))
+            self.theta += dtheta
+        
+        self.theta = math.atan2(math.sin(self.theta), math.cos(self.theta))
+        
+        # Publish everything
+        self.publish_odometry(linear_vel, angular_vel)
+        self.publish_joint_states()
+        self.publish_tf()
+        self.publish_actual_velocity(linear_vel, angular_vel)
+    
+    def publish_odometry(self, linear_vel, angular_vel):
+        odom = Odometry()
+        odom.header.stamp = self.get_clock().now().to_msg()
+        odom.header.frame_id = 'odom'
+        odom.child_frame_id = 'base_link'
+        
+        odom.pose.pose.position.x = self.x
+        odom.pose.pose.position.y = self.y
+        odom.pose.pose.orientation.z = math.sin(self.theta / 2.0)
+        odom.pose.pose.orientation.w = math.cos(self.theta / 2.0)
+        
+        # Actual velocities from physics
+        odom.twist.twist.linear.x = linear_vel
+        odom.twist.twist.angular.z = angular_vel
+        
+        self.odom_pub.publish(odom)
+    
+    def publish_joint_states(self):
+        joint_state = JointState()
+        joint_state.header.stamp = self.get_clock().now().to_msg()
+        joint_state.name = ['left_wheel_joint', 'right_wheel_joint']
+        joint_state.position = [self.wheel_pos_left, self.wheel_pos_right]
+        joint_state.velocity = [self.wheel_vel_left, self.wheel_vel_right]
+        joint_state.effort = [self.torque_left, self.torque_right]  # Show actual torques
+        
+        self.joint_pub.publish(joint_state)
+    
+    def publish_tf(self):
+        t = TransformStamped()
+        t.header.stamp = self.get_clock().now().to_msg()
+        t.header.frame_id = 'odom'
+        t.child_frame_id = 'base_link'
+        
+        t.transform.translation.x = self.x
+        t.transform.translation.y = self.y
+        t.transform.rotation.z = math.sin(self.theta / 2.0)
+        t.transform.rotation.w = math.cos(self.theta / 2.0)
+        
+        self.tf_broadcaster.sendTransform(t)
+    
+    def publish_actual_velocity(self, linear_vel, angular_vel):
+        """Publish physics-computed velocity"""
+        vel_msg = Twist()
+        vel_msg.linear.x = linear_vel
+        vel_msg.angular.z = angular_vel
+        self.velocity_pub.publish(vel_msg)
+
+def main():
+    rclpy.init()
+    robot = PhysicsVirtualRobot()
+    try:
+        rclpy.spin(robot)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        robot.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()

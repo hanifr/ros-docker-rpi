@@ -2,485 +2,813 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Material Handling System</title>
+    <title>Material Handling System - Corporate Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
     <style>
-        .mh-system {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            padding: 20px;
-            max-width: 1000px;
+        :root {
+            --primary-blue: #60a5fa;
+            --secondary-blue: #3b82f6;
+            --accent-blue: #93c5fd;
+            --light-blue: #1e40af;
+            --dark-background: #0f172a;
+            --card-background: #1e293b;
+            --panel-background: #334155;
+            --surface-background: #475569;
+            --success-green: #22c55e;
+            --warning-amber: #fbbf24;
+            --error-red: #f87171;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #475569;
+            --border-light: #64748b;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark-background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-background);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 1.5rem 2rem;
+        }
+
+        .header-content {
+            max-width: 1400px;
             margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
         }
-        
-        .control-panel, .status-panel {
-            background: #f8f9fa;
-            padding: 20px;
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .header-info h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .header-info p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
             border-radius: 8px;
-            border: 2px solid #dee2e6;
+            font-size: 0.875rem;
+            font-weight: 500;
         }
-        
-        .location-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 15px 0;
-        }
-        
-        .location-card {
-            background: white;
-            border: 2px solid #ccc;
-            border-radius: 5px;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .location-card:hover {
-            border-color: #007bff;
-            box-shadow: 0 2px 5px rgba(0,123,255,0.3);
-        }
-        
-        .location-card.selected {
-            border-color: #007bff;
-            background: #e7f3ff;
-        }
-        
-        .location-card.robot-here {
-            border-color: #28a745;
-            background: #d4edda;
-        }
-        
-        .job-queue {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #ccc;
-            background: white;
-            padding: 10px;
-            margin: 10px 0;
-        }
-        
-        .job-item {
-            background: #f8f9fa;
-            border-left: 4px solid #007bff;
-            padding: 8px;
-            margin: 5px 0;
-            border-radius: 3px;
-        }
-        
-        .job-item.active {
-            border-left-color: #ffc107;
-            background: #fff3cd;
-        }
-        
-        .job-item.completed {
-            border-left-color: #28a745;
-            background: #d4edda;
-        }
-    </style>
-</head>
-<body>
 
-    <!-- 
-    Add this navigation component to each of your existing HTML files
-    Insert this right after your opening <body> tag or existing header
-    -->
+        .status-online {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success-green);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
 
-    <nav id="interface-navigation" style="
-        background: rgba(0, 0, 0, 0.9);
-        backdrop-filter: blur(10px);
-        border-bottom: 2px solid #007acc;
-        padding: 0.75rem 1rem;
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 1rem;
-    ">
-        <!-- Logo/Title -->
-        <div style="
-            font-size: 1.2rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, #007acc, #00d4ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            color: #007acc;
-        ">
-            🤖 ROS 2 Platform
-        </div>
-        
-        <!-- Navigation Links -->
-        <div id="nav-links" style="
+        .status-offline {
+            background: rgba(248, 113, 113, 0.1);
+            color: var(--error-red);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Navigation */
+        .nav-links {
             display: flex;
             gap: 0.5rem;
             flex-wrap: wrap;
             align-items: center;
-        ">
-            <a href="/" class="nav-link" data-interface="dashboard" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                🏠 <span class="nav-text">Dashboard</span>
-            </a>
-            
-            <a href="/control" class="nav-link" data-interface="control" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                🎮 <span class="nav-text">Control</span>
-            </a>
-            
-            <a href="/physics" class="nav-link" data-interface="physics" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                ⚙️ <span class="nav-text">Physics</span>
-            </a>
-            
-            <a href="/data" class="nav-link" data-interface="data" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                📊 <span class="nav-text">Data</span>
-            </a>
-            
-            <a href="/quality" class="nav-link" data-interface="quality" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                🔬 <span class="nav-text">Quality</span>
-            </a>
-            
-            <a href="/material" class="nav-link" data-interface="material" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                📦 <span class="nav-text">Material</span>
-            </a>
-            
-            <a href="/excel" class="nav-link" data-interface="excel" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(0, 122, 204, 0.2);
-                border: 1px solid rgba(0, 122, 204, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(0, 122, 204, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(0, 122, 204, 0.2)'; this.style.transform='translateY(0)'">
-                📈 <span class="nav-text">Excel</span>
-            </a>
-            
-            <a href="/advanced" class="nav-link" data-interface="advanced" style="
-                padding: 0.5rem 0.8rem;
-                background: rgba(255, 165, 0, 0.2);
-                border: 1px solid rgba(255, 165, 0, 0.3);
-                border-radius: 5px;
-                color: #ffffff;
-                text-decoration: none;
-                font-size: 0.85rem;
-                display: flex;
-                align-items: center;
-                gap: 0.3rem;
-                transition: all 0.2s ease;
-                white-space: nowrap;
-            " onmouseover="this.style.background='rgba(255, 165, 0, 0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 165, 0, 0.2)'; this.style.transform='translateY(0)'">
-                🚀 <span class="nav-text">Advanced</span>
-            </a>
-        </div>
-        
-        <!-- Status Indicator -->
-        <div id="nav-status" style="
-            padding: 0.3rem 0.6rem;
-            background: rgba(40, 167, 69, 0.2);
-            border: 1px solid rgba(40, 167, 69, 0.3);
-            border-radius: 15px;
-            font-size: 0.75rem;
-            color: #90ee90;
+        }
+
+        .nav-link {
+            padding: 0.5rem 0.8rem;
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 0.3rem;
-        ">
-            🟢 <span id="nav-status-text">Online</span>
-        </div>
-    </nav>
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            font-weight: 500;
+        }
 
-    <!-- Mobile-responsive CSS for navigation -->
-    <style>
-    @media (max-width: 768px) {
-        #interface-navigation {
-            flex-direction: column;
-            align-items: stretch !important;
+        .nav-link:hover {
+            background: rgba(96, 165, 250, 0.2);
+            border-color: var(--primary-blue);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
         }
-        
-        #nav-links {
-            justify-content: center;
-            gap: 0.3rem !important;
-        }
-        
-        .nav-link {
-            font-size: 0.75rem !important;
-            padding: 0.4rem 0.6rem !important;
-        }
-        
-        .nav-text {
-            display: none;
-        }
-    }
 
-    @media (max-width: 480px) {
-        .nav-link {
-            padding: 0.3rem 0.5rem !important;
-            font-size: 0.7rem !important;
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--secondary-blue), var(--light-blue));
+            border-color: var(--primary-blue);
+            box-shadow: var(--shadow-md);
         }
-    }
-    </style>
 
-    <!-- JavaScript for navigation functionality -->
-    <script>
-    (function() {
-        // Highlight current page
-        function updateNavigation() {
-            const currentPath = window.location.pathname;
-            const navLinks = document.querySelectorAll('.nav-link');
-            
-            navLinks.forEach(link => {
-                const href = link.getAttribute('href');
-                const isActive = (currentPath === href) || 
-                            (currentPath === '/' && href === '/') ||
-                            (currentPath.includes(href) && href !== '/');
-                
-                if (isActive) {
-                    link.style.background = 'linear-gradient(135deg, #007acc 0%, #005c99 100%)';
-                    link.style.borderColor = '#00d4ff';
-                    link.style.boxShadow = '0 2px 8px rgba(0, 122, 204, 0.3)';
-                } else {
-                    link.style.background = 'rgba(0, 122, 204, 0.2)';
-                    link.style.borderColor = 'rgba(0, 122, 204, 0.3)';
-                    link.style.boxShadow = 'none';
-                }
-            });
+        .nav-link.advanced {
+            background: rgba(251, 191, 36, 0.1);
+            border-color: rgba(251, 191, 36, 0.2);
         }
-        
-        // Check ROS connection status
-        function checkConnectionStatus() {
-            fetch('/health')
-                .then(response => response.json())
-                .then(data => {
-                    const statusElement = document.getElementById('nav-status');
-                    const statusText = document.getElementById('nav-status-text');
-                    
-                    if (data.status === 'healthy') {
-                        statusElement.style.background = 'rgba(40, 167, 69, 0.2)';
-                        statusElement.style.borderColor = 'rgba(40, 167, 69, 0.3)';
-                        statusElement.style.color = '#90ee90';
-                        statusText.textContent = 'Online';
-                        statusElement.innerHTML = '🟢 <span id="nav-status-text">Online</span>';
-                    } else {
-                        statusElement.style.background = 'rgba(220, 53, 69, 0.2)';
-                        statusElement.style.borderColor = 'rgba(220, 53, 69, 0.3)';
-                        statusElement.style.color = '#ffcccb';
-                        statusElement.innerHTML = '🔴 <span id="nav-status-text">Offline</span>';
-                    }
-                })
-                .catch(error => {
-                    const statusElement = document.getElementById('nav-status');
-                    statusElement.style.background = 'rgba(255, 193, 7, 0.2)';
-                    statusElement.style.borderColor = 'rgba(255, 193, 7, 0.3)';
-                    statusElement.style.color = '#fff3cd';
-                    statusElement.innerHTML = '🟡 <span id="nav-status-text">Error</span>';
-                });
+
+        .nav-link.advanced:hover {
+            background: rgba(251, 191, 36, 0.2);
+            border-color: var(--warning-amber);
         }
-        
-        // Initialize navigation
-        document.addEventListener('DOMContentLoaded', function() {
-            updateNavigation();
-            checkConnectionStatus();
-            
-            // Update status every 10 seconds
-            setInterval(checkConnectionStatus, 10000);
-        });
-        
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
-                updateNavigation();
-                checkConnectionStatus();
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .mh-system {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .control-panel, .status-panel {
+            background: var(--card-background);
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--panel-background);
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-content {
+            padding: 1.5rem 2rem;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 1.5rem 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Location Grid */
+        .location-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .location-card {
+            background: var(--surface-background);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+
+        .location-card:hover {
+            border-color: var(--primary-blue);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .location-card.selected {
+            border-color: var(--primary-blue);
+            background: rgba(96, 165, 250, 0.1);
+        }
+
+        .location-card.robot-here {
+            border-color: var(--success-green);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .location-card strong {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .location-coordinates {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .material-count, .robot-status {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .robot-status {
+            color: var(--success-green);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin: 1rem 0;
+        }
+
+        .form-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 0.75rem 0;
+        }
+
+        .form-label {
+            min-width: 80px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        select, input[type="number"] {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            background: var(--surface-background);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--secondary-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--light-blue);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-success {
+            background: var(--success-green);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+            transform: translateY(-1px);
+        }
+
+        .btn-warning {
+            background: var(--warning-amber);
+            color: #1f2937;
+        }
+
+        .btn-warning:hover {
+            background: #f59e0b;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: var(--error-red);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ef4444;
+            transform: translateY(-1px);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Status Section */
+        .status-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .metric-item {
+            background: var(--surface-background);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .metric-value.success {
+            color: var(--success-green);
+        }
+
+        .metric-value.warning {
+            color: var(--warning-amber);
+        }
+
+        .metric-value.error {
+            color: var(--error-red);
+        }
+
+        /* Job Queue */
+        .job-queue {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            background: var(--surface-background);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .job-item {
+            background: var(--card-background);
+            border-left: 4px solid var(--primary-blue);
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .job-item.active {
+            border-left-color: var(--warning-amber);
+            background: rgba(251, 191, 36, 0.1);
+        }
+
+        .job-item.completed {
+            border-left-color: var(--success-green);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .job-item strong {
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .job-item-details {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* System Log */
+        .system-log {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            background: var(--surface-background);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: var(--text-secondary);
+        }
+
+        .system-log::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .system-log::-webkit-scrollbar-track {
+            background: var(--card-background);
+        }
+
+        .system-log::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .mh-system {
+                grid-template-columns: 1fr;
             }
-        });
-    })();
-    </script>
 
-    <h1>Automated Material Handling System</h1>
-    
-    <div class="mh-system">
-        <div class="control-panel">
-            <h3>System Control</h3>
-            
-            <h4>Locations</h4>
-            <div class="location-grid">
-                <div class="location-card" data-location="storage_a" onclick="selectLocation('storage_a')">
-                    <strong>Storage A</strong><br>
-                    (0.0, 2.0)<br>
-                    <span class="material-count">Items: 0</span>
-                </div>
-                <div class="location-card" data-location="storage_b" onclick="selectLocation('storage_b')">
-                    <strong>Storage B</strong><br>
-                    (2.0, 2.0)<br>
-                    <span class="material-count">Items: 0</span>
-                </div>
-                <div class="location-card" data-location="workstation" onclick="selectLocation('workstation')">
-                    <strong>Workstation</strong><br>
-                    (2.0, 0.0)<br>
-                    <span class="material-count">Items: 0</span>
-                </div>
-                <div class="location-card robot-here" data-location="home" onclick="selectLocation('home')">
-                    <strong>Home Base</strong><br>
-                    (0.0, 0.0)<br>
-                    <span class="robot-status">🤖 Robot Here</span>
-                </div>
-                <div class="location-card" data-location="loading" onclick="selectLocation('loading')">
-                    <strong>Loading Dock</strong><br>
-                    (1.0, 0.0)<br>
-                    <span class="material-count">Items: 0</span>
-                </div>
-                <div class="location-card" data-location="inspection" onclick="selectLocation('inspection')">
-                    <strong>Inspection</strong><br>
-                    (1.0, 2.0)<br>
-                    <span class="material-count">Items: 0</span>
+            .location-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .nav-links {
+                gap: 0.3rem;
+            }
+
+            .nav-link {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.6rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .nav-links {
+                justify-content: center;
+                gap: 0.3rem;
+            }
+
+            .nav-text {
+                display: none;
+            }
+
+            .nav-link {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.75rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .panel-header,
+            .panel-content {
+                padding: 1rem;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .form-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .form-label {
+                min-width: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-link {
+                padding: 0.3rem 0.5rem;
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo">📦</div>
+                <div class="header-info">
+                    <h1>Material Handling System</h1>
+                    <p>Automated Guided Vehicle • Warehouse Operations • Enterprise Suite</p>
                 </div>
             </div>
             
-            <h4>Create Transport Job</h4>
-            <div>
-                From: <select id="pickup-location">
-                    <option value="">Select pickup location</option>
-                    <option value="storage_a">Storage A</option>
-                    <option value="storage_b">Storage B</option>
-                    <option value="loading">Loading Dock</option>
-                    <option value="inspection">Inspection</option>
-                </select>
-            </div>
-            <div style="margin: 10px 0;">
-                To: <select id="dropoff-location">
-                    <option value="">Select dropoff location</option>
-                    <option value="storage_a">Storage A</option>
-                    <option value="storage_b">Storage B</option>
-                    <option value="workstation">Workstation</option>
-                    <option value="inspection">Inspection</option>
-                </select>
-            </div>
-            <div>
-                <input type="number" id="item-quantity" placeholder="Quantity" min="1" max="10" value="1">
-                <button onclick="addTransportJob()" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 3px;">Add Job</button>
-            </div>
+            <!-- Navigation Links -->
+            <nav class="nav-links">
+                <a href="/" class="nav-link">
+                    🏠 <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="/physics" class="nav-link">
+                    ⚙️ <span class="nav-text">Physics</span>
+                </a>
+                <a href="/material" class="nav-link active">
+                    📦 <span class="nav-text">Material</span>
+                </a>
+                <a href="/amh-excel" class="nav-link">
+                    📈 <span class="nav-text">Excel</span>
+                </a>
+                <a href="/advanced" class="nav-link advanced">
+                    🚀 <span class="nav-text">Advanced</span>
+                </a>
+            </nav>
             
-            <div style="margin-top: 20px;">
-                <button onclick="startSystem()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px;">Start System</button>
-                <button onclick="pauseSystem()" style="padding: 10px 20px; background: #ffc107; color: black; border: none; border-radius: 5px;">Pause</button>
-                <button onclick="stopSystem()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px;">Stop</button>
+            <div id="connection-status" class="status-badge status-offline">
+                <div class="status-indicator"></div>
+                <span>Connecting to ROS</span>
             </div>
         </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <h1 class="page-title">
+            <span>🏭</span>
+            Automated Material Handling System
+        </h1>
+        <p class="page-subtitle">Professional warehouse automation and logistics management platform</p>
         
-        <div class="status-panel">
-            <h3>System Status</h3>
-            <p>System State: <strong id="system-state">IDLE</strong></p>
-            <p>Robot Position: <span id="robot-position">(0.00, 0.00)</span></p>
-            <p>Current Job: <span id="current-job">None</span></p>
-            <p>Jobs Completed: <span id="jobs-completed">0</span></p>
-            
-            <h4>Job Queue</h4>
-            <div class="job-queue" id="job-queue">
-                <!-- Jobs will be displayed here -->
+        <div class="mh-system">
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span>🎛️</span>
+                        System Control
+                    </h2>
+                </div>
+                <div class="panel-content">
+                    <h3 class="section-title">📍 Facility Locations</h3>
+                    <div class="location-grid">
+                        <div class="location-card" data-location="storage_a" onclick="selectLocation('storage_a')">
+                            <strong>Storage A</strong>
+                            <div class="location-coordinates">(0.0, 2.0)</div>
+                            <span class="material-count">Items: 0</span>
+                        </div>
+                        <div class="location-card" data-location="storage_b" onclick="selectLocation('storage_b')">
+                            <strong>Storage B</strong>
+                            <div class="location-coordinates">(2.0, 2.0)</div>
+                            <span class="material-count">Items: 0</span>
+                        </div>
+                        <div class="location-card" data-location="workstation" onclick="selectLocation('workstation')">
+                            <strong>Workstation</strong>
+                            <div class="location-coordinates">(2.0, 0.0)</div>
+                            <span class="material-count">Items: 0</span>
+                        </div>
+                        <div class="location-card robot-here" data-location="home" onclick="selectLocation('home')">
+                            <strong>Home Base</strong>
+                            <div class="location-coordinates">(0.0, 0.0)</div>
+                            <span class="robot-status">🤖 Robot Here</span>
+                        </div>
+                        <div class="location-card" data-location="loading" onclick="selectLocation('loading')">
+                            <strong>Loading Dock</strong>
+                            <div class="location-coordinates">(1.0, 0.0)</div>
+                            <span class="material-count">Items: 0</span>
+                        </div>
+                        <div class="location-card" data-location="inspection" onclick="selectLocation('inspection')">
+                            <strong>Inspection</strong>
+                            <div class="location-coordinates">(1.0, 2.0)</div>
+                            <span class="material-count">Items: 0</span>
+                        </div>
+                    </div>
+                    
+                    <h3 class="section-title">📋 Create Transport Job</h3>
+                    <div class="form-group">
+                        <div class="form-row">
+                            <label class="form-label">From:</label>
+                            <select id="pickup-location">
+                                <option value="">Select pickup location</option>
+                                <option value="storage_a">Storage A</option>
+                                <option value="storage_b">Storage B</option>
+                                <option value="loading">Loading Dock</option>
+                                <option value="inspection">Inspection</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">To:</label>
+                            <select id="dropoff-location">
+                                <option value="">Select dropoff location</option>
+                                <option value="storage_a">Storage A</option>
+                                <option value="storage_b">Storage B</option>
+                                <option value="workstation">Workstation</option>
+                                <option value="inspection">Inspection</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Quantity:</label>
+                            <input type="number" id="item-quantity" placeholder="Quantity" min="1" max="10" value="1">
+                            <button class="btn btn-success" onclick="addTransportJob()">
+                                <span>➕</span>
+                                Add Job
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="startSystem()">
+                            <span>▶️</span>
+                            Start System
+                        </button>
+                        <button class="btn btn-warning" onclick="pauseSystem()">
+                            <span>⏸️</span>
+                            Pause
+                        </button>
+                        <button class="btn btn-danger" onclick="stopSystem()">
+                            <span>⏹️</span>
+                            Stop
+                        </button>
+                    </div>
+                </div>
             </div>
             
-            <h4>System Log</h4>
-            <div style="height: 150px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background: white; font-family: monospace; font-size: 12px;" id="system-log">
-                <!-- Log entries will appear here -->
+            <!-- Status Panel -->
+            <div class="status-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span>📊</span>
+                        System Status
+                    </h2>
+                </div>
+                <div class="panel-content">
+                    <div class="status-metrics">
+                        <div class="metric-item">
+                            <div class="metric-label">System State</div>
+                            <div id="system-state" class="metric-value">IDLE</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Jobs Completed</div>
+                            <div id="jobs-completed" class="metric-value">0</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Robot Position</div>
+                            <div id="robot-position" class="metric-value">(0.00, 0.00)</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Current Job</div>
+                            <div id="current-job" class="metric-value">None</div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="section-title">📋 Job Queue</h3>
+                    <div class="job-queue" id="job-queue">
+                        <div class="empty-state">No jobs in queue</div>
+                    </div>
+                    
+                    <h3 class="section-title">📄 System Log</h3>
+                    <div class="system-log" id="system-log">
+                        <!-- Log entries will appear here -->
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         // ROS 2 connection
         var ros = new ROSLIB.Ros({ url: 'ws://' + window.location.hostname + ':9090' });
+        var isConnected = false;
+
+        // Connection status handling
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connection-status');
+            const indicator = statusElement.querySelector('.status-indicator');
+            const text = statusElement.querySelector('span:last-child');
+            
+            if (connected) {
+                statusElement.className = 'status-badge status-online';
+                text.textContent = 'ROS Connected';
+                isConnected = true;
+            } else {
+                statusElement.className = 'status-badge status-offline';
+                text.textContent = 'ROS Offline';
+                isConnected = false;
+            }
+        }
+
+        ros.on('connection', function() {
+            updateConnectionStatus(true);
+            logMessage('✅ Connected to ROS Bridge');
+            document.getElementById('system-state').className = 'metric-value success';
+        });
+
+        ros.on('error', function(error) {
+            updateConnectionStatus(false);
+            logMessage('❌ ROS Connection Error: ' + error);
+            document.getElementById('system-state').className = 'metric-value error';
+            
+            if (systemState === 'RUNNING') {
+                pauseSystem();
+                logMessage('⚠️ System auto-paused due to connection loss');
+            }
+        });
+
+        ros.on('close', function() {
+            updateConnectionStatus(false);
+            logMessage('🔌 Disconnected from ROS Bridge');
+            document.getElementById('system-state').className = 'metric-value error';
+        });
         
         // System state
-        var systemState = 'IDLE';  // IDLE, RUNNING, PAUSED
+        var systemState = 'IDLE';
         var jobQueue = [];
         var currentJob = null;
         var jobsCompleted = 0;
         var robotPosition = { x: 0, y: 0 };
+        var robotOrientation = 0;
         
         // Location coordinates
         var locations = {
@@ -520,19 +848,23 @@
             robotPosition.x = message.pose.pose.position.x;
             robotPosition.y = message.pose.pose.position.y;
             
+            var orientation = message.pose.pose.orientation;
+            robotOrientation = Math.atan2(
+                2 * (orientation.w * orientation.z + orientation.x * orientation.y),
+                1 - 2 * (orientation.y * orientation.y + orientation.z * orientation.z)
+            );
+            
             document.getElementById('robot-position').textContent = 
                 `(${robotPosition.x.toFixed(2)}, ${robotPosition.y.toFixed(2)})`;
                 
             updateRobotLocationIndicator();
             
-            // Check if robot reached destination during job execution
             if (currentJob && systemState === 'RUNNING') {
                 checkJobProgress();
             }
         });
         
         function selectLocation(locationId) {
-            // Visual feedback for location selection (could be used for manual control)
             document.querySelectorAll('.location-card').forEach(card => {
                 card.classList.remove('selected');
             });
@@ -540,13 +872,12 @@
         }
         
         function updateRobotLocationIndicator() {
-            // Update visual indicator showing where robot is
             document.querySelectorAll('.location-card').forEach(card => {
                 card.classList.remove('robot-here');
-                card.querySelector('.robot-status')?.remove();
+                const robotStatus = card.querySelector('.robot-status');
+                if (robotStatus) robotStatus.remove();
             });
             
-            // Find closest location to robot
             var closestLocation = null;
             var minDistance = Infinity;
             
@@ -624,6 +955,12 @@
         }
         
         function startSystem() {
+            if (!isConnected) {
+                alert('Cannot start system - ROS Bridge not connected');
+                logMessage('❌ Start failed: ROS Bridge not connected');
+                return;
+            }
+            
             if (jobQueue.length === 0) {
                 alert('No jobs in queue. Add some transport jobs first.');
                 return;
@@ -631,7 +968,8 @@
             
             systemState = 'RUNNING';
             document.getElementById('system-state').textContent = 'RUNNING';
-            logMessage('System started');
+            document.getElementById('system-state').className = 'metric-value success';
+            logMessage('✅ System started');
             
             if (!currentJob) {
                 startNextJob();
@@ -641,24 +979,26 @@
         function pauseSystem() {
             systemState = 'PAUSED';
             document.getElementById('system-state').textContent = 'PAUSED';
+            document.getElementById('system-state').className = 'metric-value warning';
             stopRobot();
-            logMessage('System paused');
+            logMessage('⏸️ System paused');
         }
         
         function stopSystem() {
             systemState = 'IDLE';
             document.getElementById('system-state').textContent = 'IDLE';
+            document.getElementById('system-state').className = 'metric-value';
             stopRobot();
             
             if (currentJob) {
                 currentJob.status = 'CANCELLED';
-                jobQueue.unshift(currentJob);  // Put back in queue
+                jobQueue.unshift(currentJob);
                 currentJob = null;
             }
             
             document.getElementById('current-job').textContent = 'None';
             updateJobQueueDisplay();
-            logMessage('System stopped');
+            logMessage('⏹️ System stopped');
         }
         
         function startNextJob() {
@@ -668,23 +1008,21 @@
             
             currentJob = jobQueue.shift();
             currentJob.status = 'ACTIVE';
-            currentJob.stage = 'PICKUP';  // PICKUP, TRANSPORT, DROPOFF
+            currentJob.stage = 'PICKUP';
             
             document.getElementById('current-job').textContent = 
                 `Move ${currentJob.quantity} from ${locations[currentJob.pickup].name} to ${locations[currentJob.dropoff].name}`;
                 
             updateJobQueueDisplay();
-            logMessage(`Starting job: Move ${currentJob.quantity} items from ${locations[currentJob.pickup].name} to ${locations[currentJob.dropoff].name}`);
+            logMessage(`🚀 Starting job: Move ${currentJob.quantity} items from ${locations[currentJob.pickup].name} to ${locations[currentJob.dropoff].name}`);
             
-            // Navigate to pickup location
             navigateToLocation(currentJob.pickup);
         }
         
         function navigateToLocation(locationId) {
             var target = locations[locationId];
-            logMessage(`Navigating to ${target.name} at (${target.x}, ${target.y})`);
+            logMessage(`🎯 Navigating to ${target.name} at (${target.x}, ${target.y})`);
             
-            // Simple navigation - move toward target
             var navigationInterval = setInterval(function() {
                 if (systemState !== 'RUNNING') {
                     clearInterval(navigationInterval);
@@ -698,25 +1036,31 @@
                 if (distance < 0.15) {
                     clearInterval(navigationInterval);
                     stopRobot();
-                    logMessage(`Arrived at ${target.name}`);
+                    logMessage(`✅ Arrived at ${target.name}`);
                     return;
                 }
                 
-                var speed = Math.min(0.5, distance);
+                var targetHeading = Math.atan2(dy, dx);
+                var currentHeading = robotOrientation || 0;
+                
+                var headingError = targetHeading - currentHeading;
+                while (headingError > Math.PI) headingError -= 2 * Math.PI;
+                while (headingError < -Math.PI) headingError += 2 * Math.PI;
+                
+                var kp_linear = 0.5;
+                var kp_angular = 2.0;
+                
+                var linearVel = Math.min(kp_linear * distance, 0.5);
+                var angularVel = kp_angular * headingError;
+                
+                angularVel = Math.max(Math.min(angularVel, 1.0), -1.0);
+                
                 var twist = new ROSLIB.Message({
-                    linear: { 
-                        x: Math.sign(dx) * speed * Math.abs(dx) / distance, 
-                        y: 0, 
-                        z: 0 
-                    },
-                    angular: { 
-                        x: 0, 
-                        y: 0, 
-                        z: Math.sign(dy) * speed * Math.abs(dy) / distance * 0.5
-                    }
+                    linear: { x: linearVel, y: 0, z: 0 },
+                    angular: { x: 0, y: 0, z: angularVel }
                 });
                 cmdVel.publish(twist);
-            }, 200);
+            }, 100);
         }
         
         function checkJobProgress() {
@@ -730,36 +1074,47 @@
                 Math.pow(robotPosition.y - target.y, 2)
             );
             
-            if (distance < 0.2) {
+            if (distance < 0.3 && (!currentJob.arrivedAt || currentJob.arrivedAt !== targetLocation)) {
+                currentJob.arrivedAt = targetLocation;
+                stopRobot();
+                
                 if (currentJob.stage === 'PICKUP') {
-                    // Simulate pickup
-                    logMessage(`Picking up ${currentJob.quantity} items from ${locations[currentJob.pickup].name}`);
-                    materialCounts[currentJob.pickup] -= currentJob.quantity;
-                    updateMaterialCounts();
+                    logMessage(`📦 Arriving at ${locations[currentJob.pickup].name} for pickup...`);
                     
-                    currentJob.stage = 'TRANSPORT';
                     setTimeout(() => {
-                        logMessage('Pickup complete, moving to dropoff location');
-                        navigateToLocation(currentJob.dropoff);
-                    }, 2000);
+                        logMessage(`📦 Picking up ${currentJob.quantity} items from ${locations[currentJob.pickup].name}`);
+                        materialCounts[currentJob.pickup] -= currentJob.quantity;
+                        updateMaterialCounts();
+                        
+                        currentJob.stage = 'TRANSPORT';
+                        delete currentJob.arrivedAt;
+                        
+                        setTimeout(() => {
+                            logMessage('🚚 Pickup complete, moving to dropoff location');
+                            navigateToLocation(currentJob.dropoff);
+                        }, 1500);
+                    }, 1000);
                     
                 } else if (currentJob.stage === 'TRANSPORT') {
-                    // Simulate dropoff
-                    logMessage(`Dropping off ${currentJob.quantity} items at ${locations[currentJob.dropoff].name}`);
-                    materialCounts[currentJob.dropoff] += currentJob.quantity;
-                    updateMaterialCounts();
-                    
-                    currentJob.status = 'COMPLETED';
-                    jobsCompleted++;
-                    document.getElementById('jobs-completed').textContent = jobsCompleted;
-                    
-                    logMessage(`Job completed: ${currentJob.quantity} items moved from ${locations[currentJob.pickup].name} to ${locations[currentJob.dropoff].name}`);
-                    
-                    currentJob = null;
-                    document.getElementById('current-job').textContent = 'None';
+                    logMessage(`📦 Arriving at ${locations[currentJob.dropoff].name} for dropoff...`);
                     
                     setTimeout(() => {
-                        startNextJob();
+                        logMessage(`📦 Dropping off ${currentJob.quantity} items at ${locations[currentJob.dropoff].name}`);
+                        materialCounts[currentJob.dropoff] += currentJob.quantity;
+                        updateMaterialCounts();
+                        
+                        currentJob.status = 'COMPLETED';
+                        jobsCompleted++;
+                        document.getElementById('jobs-completed').textContent = jobsCompleted;
+                        
+                        logMessage(`✅ Job completed: ${currentJob.quantity} items moved from ${locations[currentJob.pickup].name} to ${locations[currentJob.dropoff].name}`);
+                        
+                        currentJob = null;
+                        document.getElementById('current-job').textContent = 'None';
+                        
+                        setTimeout(() => {
+                            startNextJob();
+                        }, 2000);
                     }, 1000);
                 }
             }
@@ -781,9 +1136,12 @@
                 var jobDiv = document.createElement('div');
                 jobDiv.className = 'job-item active';
                 jobDiv.innerHTML = `
-                    <strong>ACTIVE:</strong> Move ${currentJob.quantity} items<br>
-                    ${locations[currentJob.pickup].name} → ${locations[currentJob.dropoff].name}<br>
-                    Stage: ${currentJob.stage}
+                    <strong>ACTIVE JOB</strong>
+                    <div class="job-item-details">
+                        Move ${currentJob.quantity} items<br>
+                        ${locations[currentJob.pickup].name} → ${locations[currentJob.dropoff].name}<br>
+                        Stage: ${currentJob.stage || 'PICKUP'}
+                    </div>
                 `;
                 queueDiv.appendChild(jobDiv);
             }
@@ -792,15 +1150,18 @@
                 var jobDiv = document.createElement('div');
                 jobDiv.className = 'job-item';
                 jobDiv.innerHTML = `
-                    <strong>Job ${index + 1}:</strong> Move ${job.quantity} items<br>
-                    ${locations[job.pickup].name} → ${locations[job.dropoff].name}<br>
-                    Created: ${job.created}
+                    <strong>Job ${index + 1}</strong>
+                    <div class="job-item-details">
+                        Move ${job.quantity} items<br>
+                        ${locations[job.pickup].name} → ${locations[job.dropoff].name}<br>
+                        Created: ${job.created}
+                    </div>
                 `;
                 queueDiv.appendChild(jobDiv);
             });
             
             if (!currentJob && jobQueue.length === 0) {
-                queueDiv.innerHTML = '<p style="text-align: center; color: #666;">No jobs in queue</p>';
+                queueDiv.innerHTML = '<div class="empty-state">No jobs in queue</div>';
             }
         }
         
@@ -814,7 +1175,42 @@
         // Initialize display
         updateMaterialCounts();
         updateJobQueueDisplay();
-        logMessage('Material Handling System initialized');
+        updateConnectionStatus(false);
+        logMessage('🏭 Material Handling System initialized');
+        logMessage('📡 Connecting to ROS Bridge...');
+        
+        // Navigation functionality
+        function updateNavigation() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                const isActive = (currentPath === href) || 
+                            (currentPath === '/' && href === '/') ||
+                            (currentPath.includes(href) && href !== '/');
+                
+                if (isActive) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        }
+
+        // Initialize navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNavigation();
+        });
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                updateNavigation();
+            }
+        });
+        
+        console.log('🚀 Corporate Material Handling System loaded');
     </script>
 </body>
 </html>

@@ -1,6 +1,28 @@
 #!/usr/bin/env python3
 """
-Virtual differential drive robot simulation
+Virtual differential drive robot simulation (kinematics and odometry)
+This script simulates a differential drive robot using ROS 2.
+It handles command velocities, computes odometry, publishes joint states,
+and broadcasts TF transforms.
+This is a basic implementation and can be extended with more features.
+It is designed to run in a ROS 2 environment with Python.
+It is not intended to be used in a real robot but rather as a simulation
+for testing and development purposes.
+
+ω_l = (v - ω*L/2)/r     # Left wheel angular velocity
+ω_r = (v + ω*L/2)/r     # Right wheel angular velocity
+left_wheel_vel = (self.linear_vel - self.angular_vel * self.wheel_separation / 2.0) / self.wheel_radius
+right_wheel_vel = (self.linear_vel + self.angular_vel * self.wheel_separation / 2.0) / self.wheel_radius
+
+# Direct pose integration:
+if |ω| < ε:
+    x += v*cos(θ)*dt
+    y += v*sin(θ)*dt  
+else:
+    R = v/ω
+    x += R*(sin(θ+ω*dt) - sin(θ))
+    y += R*(cos(θ) - cos(θ+ω*dt))
+    θ += ω*dt
 """
 
 import rclpy
