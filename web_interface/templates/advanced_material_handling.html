@@ -740,8 +740,9 @@
         // =============================================================================
         
         // ROS 2 connection
-        var ros = new ROSLIB.Ros({ url: 'ws://' + window.location.hostname + ':9090' });
-        // var ros = new ROSLIB.Ros({ url: 'ws://192.168.1.104:9090' });
+        // var ros = new ROSLIB.Ros({ url: 'ws://' + window.location.hostname + ':9090' });
+        var ros = new ROSLIB.Ros({ url: 'ws://localhost:9090' });
+        
         var isConnected = false;
         
         // System state
