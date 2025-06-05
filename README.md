@@ -59,9 +59,7 @@ launcher
 ```
 
 
-
-
-Steps
+# Steps
 # Check the file structure
 ```bash
 tree -L 3
@@ -177,4 +175,21 @@ pure_pursuit
 ├─────────────────────────────────────┤
 │         ROS 2 Core                  │
 └─────────────────────────────────────┘
+```
+
+
+# Extra
+
+# Run Pi setup (installs Docker, ROS, etc.)
+```bash
+./scripts/init.sh
+# After completion, test everything:
+./scripts/test_docker_setup.sh
+
+# Get quick start guide:
+./scripts/quick_start.sh
+```
+# Start web interface (creates web_interface/ directory)
+```bash
+./scripts/start_web_interface.sh
 ```
