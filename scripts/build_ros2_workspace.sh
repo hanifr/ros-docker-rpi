@@ -7,7 +7,7 @@ echo "🔧 Updating package list..."
 sudo apt update
 
 echo "📦 Installing colcon and build tools..."
-sudo apt install -y python3-colcon-common-extensions build-essential cmake
+sudo apt install colcon -y
 
 # Source ROS 2 setup (assuming Humble is installed)
 if [ -f /opt/ros/humble/setup.bash ]; then
