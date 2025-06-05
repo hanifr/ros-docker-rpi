@@ -76,9 +76,9 @@ services:
       - ./ros2_ws:/workspace
       - ./scripts:/scripts
       # ADD: Share built workspace from gazebo-sim
-      # - workspace_build:/workspace/build
-      # - workspace_install:/workspace/install
-      # - workspace_log:/workspace/log
+      - workspace_build:/workspace/build
+      - workspace_install:/workspace/install
+      - workspace_log:/workspace/log
     ports:
       - "9091:9091"    # TF2 Web Republisher
     networks:
