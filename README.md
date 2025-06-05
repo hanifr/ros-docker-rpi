@@ -86,6 +86,9 @@ docker-compose -f docker-compose.pi.yml --profile monitoring up -d
 
 # Check status
 docker-compose -f docker-compose.pi.yml ps
+
+# Prune all containers and images
+docker system prune -a -f
 ```
 ROS 2 Simulation: Port 9090 (ROSBridge)
 Web Interface: http://your-pi-ip:5000
