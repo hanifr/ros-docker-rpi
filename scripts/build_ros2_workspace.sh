@@ -3,16 +3,13 @@
 
 echo "🔨 Building ROS 2 workspace..."
 
+apt install colcon -y
+
 cd ros2_ws
 
-# Source ROS 2
-source /opt/ros/humble/setup.bash
 
 # Build with colcon
-colcon build --symlink-install \
-             --cmake-args -DCMAKE_BUILD_TYPE=Release \
-             --parallel-workers 2 \
-             --event-handlers console_direct+
+colcon build --packages-select my_robot_description my_robot_gazebo --symlink-install
 
 echo "✅ ROS 2 workspace built successfully!"
 echo "To use: source ros2_ws/install/setup.bash"
