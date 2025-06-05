@@ -902,8 +902,8 @@
             }
             
             static connectToROS() {
-                // const rosUrl = 'ws://' + window.location.hostname + ':9090';
-                const rosUrl = 'ws://localhost:9090';
+                const rosUrl = 'ws://' + window.location.hostname + ':9090';
+                // const rosUrl = 'ws://localhost:9090';
                 Logger.log('🚀 Connecting to ROS Bridge at ' + rosUrl);
                 
                 this.ros = new ROSLIB.Ros({ url: rosUrl });
