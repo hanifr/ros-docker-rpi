@@ -76,6 +76,12 @@ colcon build --symlink-install
 cd ~/gazebo-ros-pi
 docker-compose -f docker-compose.pi.yml build gazebo-sim
 
+# Edit docker-compose.pi.yml
+nano docker-compose.pi.yml
+      # Ignore these volumes
+      #- workspace_build:/workspace/build
+      #- workspace_install:/workspace/install
+      #- workspace_log:/workspace/log
 # Start services
 docker-compose -f docker-compose.pi.yml up -d
 
